@@ -56,6 +56,7 @@ input[type=range]{accent-color:var(--ac)}
 <button data-tab="histo">Histopatologi</button>
 <button data-tab="embrio">Embriologi</button>
 <button data-tab="repro">Reproduksi</button>
+<button data-tab="darah">Ulas Darah</button>
 <button data-tab="tentang">Tentang</button>
 </nav>
 </header>
@@ -68,6 +69,7 @@ input[type=range]{accent-color:var(--ac)}
 <label>Kulit/cangkang <input type="range" id="anat-skin" min="0" max="100" value="30"></label>
 <label><input type="checkbox" id="anat-auto"> Putar otomatis</label>
 <button class="b" id="anat-reset">Reset kamera</button>
+<button class="b" id="anat-quiz">Kuis otot</button>
 </div></div>
 <p class="muted">Seret untuk memutar 360°, scroll/cubit untuk zoom, klik otot untuk melihat fungsi, protein, dan lokasi injeksi.</p>
 </div><aside class="panel" id="anat-info"></aside></div></section>
@@ -115,6 +117,12 @@ input[type=range]{accent-color:var(--ac)}
 </div><aside class="panel" id="rep-info"></aside></div>
 <div class="scroll"><table id="rep-table"></table></div>
 </section>
+
+<section class="tab" id="tab-darah"><div class="layout"><div>
+<div class="stage"><canvas id="bl-cv" class="flat" width="700" height="520" style="cursor:grab"></canvas>
+<div class="bar"><label>Hewan <select id="bl-sp"></select></label><span id="bl-state"></span><span id="bl-mode"></span></div></div>
+<p class="muted">Seret untuk menggeser ulas darah (Wright-Giemsa, ± 1000×). Mode Belajar: klik sel. Kuis: tebak sel. Hitung: latihan hitung jenis leukosit.</p>
+</div><aside class="panel" id="bl-info"></aside></div></section>
 
 <section class="tab" id="tab-tentang"><div class="about" id="about"></div></section>
 
@@ -414,7 +422,7 @@ function buildSnake(sp,skin){
 inits.anatomi=function(){
   const v=createViewer($('#anat-view'));
   const skin=new THREE.MeshStandardMaterial({color:0xb98a5e,transparent:true,opacity:.3,roughness:.8,side:THREE.DoubleSide,depthWrite:false});
-  let cur='sapi',model=null,kit=null,sel=null;
+  let cur='sapi',model=null,kit=null,sel=null,quiz=null;
   fillSelect($('#anat-sp'),Object.entries(SP).map(([k,s])=>[k,s.n]));
   const info=$('#anat-info');
   function highlight(){Object.entries(kit.mats).forEach(([id,m])=>{m.emissive.setHex(id===sel?0xffa800:0x000000);m.emissiveIntensity=id===sel?.9:0;});}
@@ -443,10 +451,24 @@ inits.anatomi=function(){
     cur=k;if(model)v.scene.remove(model);sel=null;
     const s=SP[k];skin.color.setHex(s.col);
     const b={quad:buildQuad,bird:buildBird,turtle:buildTurtle,snake:buildSnake}[s.kind](s,skin);
-    model=b.g;kit=b.kit;v.scene.add(model);v.fit(model);highlight();intro();
+    model=b.g;kit=b.kit;v.scene.add(model);v.fit(model);highlight();quiz?nextQ():intro();
   }
-  enablePicking(v,()=>Object.values(kit.byId).flat(),hs=>{if(hs)select(hs[0].object.userData.muscle);},
-    (hs,e)=>{if(hs){tip(MUS[SP[cur].kind][hs[0].object.userData.muscle].idn,e);v.renderer.domElement.style.cursor='pointer';}else{tip('',e);v.renderer.domElement.style.cursor='grab';}});
+  function nextQ(){
+    const ids=Object.keys(MUS[SP[cur].kind]);let id;do{id=ids[Math.random()*ids.length|0];}while(id===quiz.target&&ids.length>1);
+    quiz.target=id;quiz.done=false;sel=null;highlight();const m=MUS[SP[cur].kind][id];
+    info.innerHTML=`<h2>Kuis otot</h2><p>Klik otot ini pada model:</p><p><b>${m.idn}</b><br><span class="lat">${m.lat}</span></p><p class="muted">Skor: ${quiz.ok} / ${quiz.n}</p><button class="b" id="qstop">Berhenti</button>`;
+    $('#qstop',info).onclick=stopQuiz;
+  }
+  function stopQuiz(){quiz=null;sel=null;highlight();$('#anat-quiz').classList.remove('on');intro();}
+  function answer(id){
+    if(quiz.done)return;quiz.done=true;quiz.n++;const ok=id===quiz.target;if(ok)quiz.ok++;
+    sel=quiz.target;highlight();const m=MUS[SP[cur].kind][quiz.target];
+    info.innerHTML=`<h2>Kuis otot</h2><p><span class="tag ${ok?'ok':'no'}">${ok?'Benar':'Kurang tepat'}</span></p><p>Jawaban: <b>${m.idn}</b> <span class="lat">(${m.lat})</span></p>${ok?'':`<p>Kamu memilih: ${MUS[SP[cur].kind][id].idn}.</p>`}<h3>Fungsi</h3><p>${m.fn}</p><p class="muted">Skor: ${quiz.ok} / ${quiz.n}</p><p><button class="b" id="qnext">Soal berikutnya →</button> <button class="b" id="qstop">Berhenti</button></p>`;
+    $('#qnext',info).onclick=nextQ;$('#qstop',info).onclick=stopQuiz;
+  }
+  enablePicking(v,()=>Object.values(kit.byId).flat(),hs=>{if(!hs)return;const id=hs[0].object.userData.muscle;if(quiz)answer(id);else select(id);},
+    (hs,e)=>{if(hs){if(!quiz)tip(MUS[SP[cur].kind][hs[0].object.userData.muscle].idn,e);v.renderer.domElement.style.cursor='pointer';}else{tip('',e);v.renderer.domElement.style.cursor='grab';}});
+  $('#anat-quiz').onclick=()=>{if(quiz){stopQuiz();}else{quiz={ok:0,n:0,target:null,done:false};$('#anat-quiz').classList.add('on');nextQ();}};
   $('#anat-sp').onchange=e=>load(e.target.value);
   $('#anat-skin').oninput=e=>{skin.opacity=e.target.value/100;};
   $('#anat-auto').onchange=e=>{v.controls.autoRotate=e.target.checked;v.controls.autoRotateSpeed=2;};
@@ -1067,9 +1089,268 @@ inits.repro=function(){
   draw();
 };
 
+/* ---------- ulas darah (hematologi) ---------- */
+const TC={neut:'#6a4fb0',het:'#6a4fb0',eos:'#e8742f',baso:'#2f1b5e',lymph:'#3a8fd0',mono:'#7a8aa8',plt:'#a56fd0',thr:'#a56fd0'};
+const SN={neut:'Neutrofil',het:'Heterofil',eos:'Eosinofil',baso:'Basofil',lymph:'Limfosit',mono:'Monosit',plt:'Platelet (trombosit)',thr:'Trombosit (berinti)'};
+const SI={neut:'N',het:'H',eos:'E',baso:'B',lymph:'L',mono:'M'};
+const CI={
+ rbc:{n:'Eritrosit (sel darah merah)',ciri:'Pada mamalia tanpa inti, berwarna merah muda-oranye. Bentuk dan ukuran berbeda antarspesies.',fn:'Mengangkut oksigen (lewat hemoglobin) dari paru ke jaringan dan membawa CO2 kembali.',klin:'Jumlah menurun = anemia. Anemia regeneratif ditandai polikromasia (sel biru keabuan lebih besar = retikulosit) dan anisositosis. Periksa juga parasit di dalam atau di permukaan sel.'},
+ neut:{n:'Neutrofil',ciri:'Diameter ± 10–12 µm. Inti bersegmen 3–5 lobus berkromatin padat, sitoplasma pucat merah muda dengan granula halus.',fn:'Fagositosis bakteri; pertahanan lini pertama saat radang.',klin:'Neutrofilia: radang/infeksi bakteri, stres atau kortikosteroid. Neutropenia berat: sepsis atau sumsum tulang tertekan. Left shift (banyak neutrofil batang) menandakan radang akut berat.'},
+ het:{n:'Heterofil (unggas)',ciri:'Setara neutrofil mamalia. Inti 2–3 lobus, sitoplasma hampir tak berwarna berisi granula berbentuk batang/gelendong oranye-merah terang.',fn:'Fagositosis; respons radang dan infeksi bakteri pada unggas.',klin:'Heterofilia: radang atau infeksi. Heterofil toksik (sitoplasma kebiruan, granula abnormal) menandakan infeksi berat.'},
+ eos:{n:'Eosinofil',ciri:'Diameter ± 12–14 µm. Inti 2 lobus, sitoplasma penuh granula merah-oranye. Bentuk granula berbeda antarspesies.',fn:'Pertahanan terhadap parasit cacing dan peran pada reaksi alergi.',klin:'Eosinofilia: parasit cacing, alergi (mis. dermatitis alergi pinjal), asma kucing, penyakit hipersensitivitas.'},
+ baso:{n:'Basofil',ciri:'Diameter ± 10–12 µm. Sitoplasma berisi granula besar ungu-biru gelap yang sering menutupi inti. Paling jarang dari semua leukosit.',fn:'Melepaskan histamin dan heparin; berperan pada alergi dan hipersensitivitas.',klin:'Basofilia jarang dan biasanya menyertai eosinofilia (alergi, parasit, hiperlipidemia pada anjing).'},
+ lymph:{n:'Limfosit',ciri:'Sel kecil (± 7–10 µm, sedikit lebih besar dari eritrosit). Inti bulat besar berkromatin gelap mengisi hampir seluruh sel, rim sitoplasma biru muda tipis.',fn:'Imunitas adaptif: limfosit B (antibodi) dan T (imunitas seluler).',klin:'Limfositosis: infeksi kronis, vaksinasi, leukemia limfositik. Limfopenia: stres/kortikosteroid, infeksi virus akut (mis. parvovirus).'},
+ mono:{n:'Monosit',ciri:'Leukosit terbesar (± 14–18 µm). Inti berbentuk ginjal atau tapal kuda, sitoplasma abu-abu kebiruan dengan vakuola halus.',fn:'Fagositosis; menjadi makrofag di jaringan; menyajikan antigen.',klin:'Monositosis: radang kronis, nekrosis jaringan, infeksi (mis. penyakit granulomatosa), stres pada anjing.'},
+ plt:{n:'Platelet (trombosit mamalia)',ciri:'Fragmen sitoplasma kecil tak berinti (± 2–4 µm), ungu dengan granula halus; sering bergerombol.',fn:'Hemostasis: penyumbat luka dan pembekuan darah.',klin:'Trombositopenia: perdarahan (mis. petechiae), DIC, babesiosis/ehrlichiosis. Gerombol platelet pada ulasan dapat menyebabkan hitung palsu rendah.'},
+ thr:{n:'Trombosit (unggas)',ciri:'Sel oval kecil berinti, sitoplasma tak berwarna dengan beberapa granula gelap di kutub.',fn:'Hemostasis, setara platelet mamalia; unggas juga punya sifat fagositik.',klin:'Jumlah turun: gangguan pembekuan atau sumsum tulang.'},
+ tryp:{n:'Trypanosoma (di plasma)',ciri:'Protozoa panjang bergelombang di antara eritrosit, dengan membran bergelombang, flagel bebas, inti oval dan kinetoplas kecil.',fn:'Parasit darah ekstraseluler, ditularkan mekanik oleh lalat penghisap darah.',klin:'Surra: demam intermiten, anemia, penurunan berat badan; sangat fatal pada kuda.'}
+};
+const BLD={
+ anjing:{n:'Anjing',rbc:{r:19,pal:.42,txt:'Diameter ± 7 µm, bikonkaf dengan central pallor jelas (± sepertiga diameter).'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'round',
+  mid:{neut:68,lymph:21,mono:6,eos:4,baso:1},ref:{neut:[60,77],lymph:[12,30],mono:[3,10],eos:[2,10],baso:[0,1]},
+  par:{k:'babesia',sz:1,txt:'Babesia canis: piroplasma besar berpasangan berbentuk buah pir di dalam eritrosit.'},
+  notes:{neut:'Neutrofil adalah leukosit terbanyak pada anjing sehat.',eos:'Granula bulat oranye, ukuran bervariasi (pada greyhound sering tampak kosong/vakuolatif).',baso:'Sangat jarang; granula ungu keabuan.',plt:'Jumlah trombosit jauh lebih banyak daripada leukosit.'}},
+ kucing:{n:'Kucing',rbc:{r:16,pal:.2,roul:true,txt:'Diameter ± 5,8 µm, central pallor samar, rouleaux sering terlihat. Badan Heinz (inklusi kecil di tepi sel) sering ada dan tidak selalu patologis.'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'rod',pale:true,
+  mid:{neut:58,lymph:32,mono:3,eos:6,baso:1},ref:{neut:[35,75],lymph:[20,55],mono:[1,4],eos:[2,12],baso:[0,1]},
+  par:{k:'myco',txt:'Mycoplasma haemofelis (hemoplasma): kokus/batang kecil biru di permukaan eritrosit, bukan di dalamnya.'},
+  notes:{eos:'Granula berbentuk batang pendek (rod): ciri khas kucing.',baso:'Granula lavender pucat dan oval; lebih jarang dari mamalia lain.',plt:'Trombosit kucing bisa sebesar eritrosit dan mudah menggumpal pada sampel.'}},
+ sapi:{n:'Sapi',rbc:{r:15,pal:0,txt:'Diameter ± 5,5 µm, tanpa central pallor jelas; anisositosis ringan normal terutama pada anak sapi.'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'round',
+  mid:{neut:30,lymph:60,mono:4,eos:5,baso:1},ref:{neut:[15,45],lymph:[45,75],mono:[2,7],eos:[0,20],baso:[0,2]},
+  par:{k:'babesia',sz:.8,txt:'Babesia bigemina: pasangan piroplasma berbentuk pir dengan ujung runcing saling bertemu membentuk sudut lancip di tengah eritrosit.'},
+  notes:{lymph:'Pada sapi dewasa limfosit lebih banyak daripada neutrofil (kebalikan dari anjing).',neut:'Neutrofil lebih sedikit dari limfosit pada sapi sehat; banyak neutrofil batang menandakan radang.'}},
+ kuda:{n:'Kuda',rbc:{r:16,pal:0,roul:true,txt:'Diameter ± 5,7 µm, tanpa central pallor, rouleaux sangat menonjol (normal). Retikulosit hampir tidak dilepas ke darah tepi, sehingga polikromasia jarang dipakai menilai regenerasi.'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'big',
+  mid:{neut:55,lymph:38,mono:4,eos:2,baso:1},ref:{neut:[30,75],lymph:[25,70],mono:[1,7],eos:[0,10],baso:[0,3]},
+  par:{k:'tryp',txt:'Trypanosoma evansi (surra): protozoa bergelombang di plasma, bukan di dalam eritrosit.'},
+  notes:{eos:'Granula sangat besar, bulat, oranye cerah: ciri khas kuda.',baso:'Jarang; granula ungu gelap.'}},
+ kambing:{n:'Kambing',rbc:{r:11,pal:0,txt:'Diameter ± 4 µm (terkecil di antara hewan domestik), pleomorfik, tanpa central pallor; poikilositosis dapat normal pada anak kambing.'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'round',
+  mid:{neut:40,lymph:52,mono:2,eos:5,baso:1},ref:{neut:[30,48],lymph:[50,70],mono:[0,4],eos:[1,8],baso:[0,1]},
+  par:{k:'anaplasma',txt:'Anaplasma: bintik biru gelap (badan inklusi) di tepi eritrosit.'},
+  notes:{lymph:'Limfosit adalah leukosit terbanyak pada kambing sehat.'}},
+ ayam:{n:'Ayam',rbc:{r:30,bird:true,txt:'Eritrosit oval berinti, ± 11–12 × 6–7 µm, inti bulat-oval padat di tengah.'},wbc:['het','lymph','mono','eos','baso'],plt:'thr',eg:'round',
+  mid:{het:30,lymph:57,mono:7,eos:4,baso:2},ref:{het:[20,40],lymph:[45,70],mono:[5,10],eos:[1,4],baso:[1,4]},
+  par:{k:'haemo',txt:'Haemoproteus: gametosit berbentuk halter melingkari inti eritrosit dengan butir pigmen kecoklatan.'},
+  notes:{het:'Heterofil unggas setara dengan neutrofil mamalia.',eos:'Granula bulat merah-oranye; inti 2 lobus.',baso:'Granula ungu gelap padat, bulat; relatif lebih banyak daripada mamalia.'}}
+};
+const BST={normal:'Normal: eritrosit seragam dan leukosit dalam proporsi sehat.',anemia:'Anemia regeneratif: jumlah eritrosit menurun, ukuran bervariasi (anisositosis), dan muncul sel biru keabuan yang lebih besar (polikromasia = retikulosit), tanda sumsum tulang merespons.',parasit:'Parasit darah: sebagian eritrosit (atau plasma) terinfeksi. Cari bentuk khas parasit, lalu klik untuk detailnya.'};
+const BSHUF=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+function genField(k,state){
+  const S=BLD[k],r=rng(k.length*977+state.length*31+7),W=2400,H=1800,rbc=[],other=[];
+  const R=S.rbc.r,step=R*2.15,dens=state==='anemia'?.6:.92;
+  for(let y=R;y<H;y+=step*.92)for(let x=R;x<W;x+=step){
+    if(r()>dens)continue;
+    const c={t:'rbc',x:x+(r()-.5)*step*.5,y:y+(r()-.5)*step*.5,r:R*(1+(r()-.5)*(state==='anemia'?.5:.1)),rot:r()*6.28,seed:r()};
+    if(state==='anemia'&&r()<.28){c.poly=true;c.r*=1.18;}
+    if(state==='parasit'&&S.par.k!=='tryp'&&r()<.22)c.par=true;
+    rbc.push(c);
+    if(S.rbc.roul&&r()<.12){const n=3+(r()*4|0);for(let i=1;i<n;i++)rbc.push({t:'rbc',x:c.x+Math.cos(c.rot)*R*.6*i,y:c.y+Math.sin(c.rot)*R*.6*i,r:R,rot:c.rot,seed:r()});}
+  }
+  const WR={neut:33,het:33,eos:36,baso:30,lymph:25,mono:41,plt:9,thr:18};
+  const place=(t,n)=>{for(let i=0;i<n;i++)other.push({t,x:120+r()*(W-240),y:120+r()*(H-240),r:WR[t],rot:r()*6.28,seed:r()});};
+  S.wbc.forEach(t=>place(t,S.mid[t]));
+  place(S.plt,S.plt==='plt'?45:25);
+  if(state==='parasit'&&S.par.k==='tryp')for(let i=0;i<30;i++)other.push({t:'tryp',x:120+r()*(W-240),y:120+r()*(H-240),r:55,rot:r()*6.28,seed:r()});
+  return {W,H,rbc,other};
+}
+
+function drawBlood(c,o,S){
+  c.save();c.translate(o.x,o.y);c.rotate(o.rot||0);
+  const R=o.r,sr=rng(Math.floor((o.seed||.5)*1e6)),t=o.t;
+  const dot=(x,y,r,col)=>{c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();};
+  const circ=(r,f,s,lw)=>{c.beginPath();c.arc(0,0,r,0,7);if(f){c.fillStyle=f;c.fill();}if(s){c.strokeStyle=s;c.lineWidth=lw||1;c.stroke();}};
+  const bar=(x1,x2,col,lw)=>{c.strokeStyle=col;c.lineWidth=lw;c.beginPath();c.moveTo(x1,0);c.lineTo(x2,0);c.stroke();};
+  if(t==='rbc'){
+    const col=o.poly?'#bfa6cc':'#e9a28e';
+    if(S.rbc.bird){
+      c.fillStyle=col;c.strokeStyle='#c07c68';c.lineWidth=1.2;c.beginPath();c.ellipse(0,0,R,R*.58,0,0,7);c.fill();c.stroke();
+      c.fillStyle='#4a2b6a';c.beginPath();c.ellipse(0,0,R*.4,R*.27,0,0,7);c.fill();
+      if(o.par){c.strokeStyle='#c9a2c8';c.lineWidth=R*.14;c.beginPath();c.ellipse(0,0,R*.6,R*.38,0,.5,3.7);c.stroke();for(let i=0;i<4;i++)dot(Math.cos(.8+i*.7)*R*.6,Math.sin(.8+i*.7)*R*.38,R*.045,'#7a5a2a');}
+    }else{
+      circ(R,col,'#c27a68',1.1);
+      if(S.rbc.pal&&!o.poly)circ(R*S.rbc.pal,'#f4cfc3');
+      if(o.par){
+        const k=S.par.k;
+        if(k==='babesia'){[-1,1].forEach(s=>{c.save();c.rotate(s*.6);c.fillStyle='#6f86c4';c.strokeStyle='#3b4a8a';c.lineWidth=.8;c.beginPath();c.ellipse(R*.3,0,R*.32*S.par.sz,R*.2*S.par.sz,0,0,7);c.fill();c.stroke();dot(R*.4,0,R*.045,'#8d1c4a');c.restore();});}
+        else if(k==='anaplasma'){for(let i=0;i<2;i++){const a=sr()*6.28;dot(Math.cos(a)*R*.7,Math.sin(a)*R*.7,R*.14,'#2a2468');}}
+        else if(k==='myco'){for(let i=0;i<5;i++){const a=sr()*6.28;dot(Math.cos(a)*R*.92,Math.sin(a)*R*.92,R*.08,'#3b4a9a');}}
+      }
+    }
+  }
+  else if(t==='neut'){
+    circ(R,'#efdbe3','#c9a8b8',1);
+    for(let i=0;i<20;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.9;dot(Math.cos(a)*d,Math.sin(a)*d,R*.035,'#dcaac6');}
+    const n=3+(sr()<.4?1:0),P=[];for(let i=0;i<n;i++){const a=-1.2+i*(2.4/(n-1));P.push([Math.cos(a)*R*.4+R*.05,Math.sin(a)*R*.5]);}
+    c.strokeStyle='#5a3d8f';c.lineWidth=R*.1;c.beginPath();P.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();
+    P.forEach(p=>dot(p[0],p[1],R*.26,'#5a3d8f'));
+  }
+  else if(t==='het'){
+    circ(R,'#f3ebe8','#d0b8b0',1);c.lineCap='round';
+    for(let i=0;i<34;i++){const a=sr()*6.28,d=R*(.35+sr()*.6),x=Math.cos(a)*d,y=Math.sin(a)*d,b=sr()*3;c.strokeStyle='#e0693a';c.lineWidth=R*.08;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(b)*R*.14,y+Math.sin(b)*R*.14);c.stroke();}
+    bar(-R*.28,R*.28,'#5a3d8f',R*.1);dot(-R*.28,0,R*.28,'#5a3d8f');dot(R*.28,0,R*.28,'#5a3d8f');
+  }
+  else if(t==='eos'){
+    circ(R,'#f4dcd3','#d8b0a0',1);
+    const n=S.eg==='big'?24:38;
+    for(let i=0;i<n;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.92,x=Math.cos(a)*d,y=Math.sin(a)*d;
+      if(S.eg==='rod'){c.save();c.translate(x,y);c.rotate(sr()*3);c.fillStyle='#f0702f';c.fillRect(-R*.08,-R*.03,R*.16,R*.06);c.restore();}
+      else dot(x,y,S.eg==='big'?R*.12:R*.07,'#f0702f');}
+    bar(-R*.27,R*.27,'#5a3d8f',R*.09);dot(-R*.27,0,R*.27,'#5a3d8f');dot(R*.27,0,R*.27,'#5a3d8f');
+  }
+  else if(t==='baso'){
+    circ(R,'#d6d0ea','#a89cc8',1);dot(-R*.1,0,R*.5,'#8f77bd');
+    for(let i=0;i<18;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.9;dot(Math.cos(a)*d,Math.sin(a)*d,R*.1,S.pale?'#b9a8dc':'#2d1960');}
+  }
+  else if(t==='lymph'){
+    circ(R,'#a9cdea','#86a9cc',1);dot(R*.06,0,R*.8,'#4b3084');
+    for(let i=0;i<7;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.6;dot(R*.06+Math.cos(a)*d,Math.sin(a)*d,R*.07,'#6c52a8');}
+  }
+  else if(t==='mono'){
+    circ(R,'#aab6d3','#8c98b8',1);
+    for(let i=0;i<6;i++){const a=sr()*6.28,d=R*(.6+sr()*.3);dot(Math.cos(a)*d,Math.sin(a)*d,R*.08,'#e9eef8');}
+    c.fillStyle='#7e65b4';c.beginPath();c.ellipse(-R*.1,0,R*.62,R*.52,0,0,7);c.fill();dot(R*.3,-R*.05,R*.3,'#aab6d3');
+  }
+  else if(t==='plt'){
+    c.fillStyle='#b48ad6';c.beginPath();c.ellipse(0,0,R,R*.7,0,0,7);c.fill();
+    for(let i=0;i<4;i++)dot((sr()-.5)*R,(sr()-.5)*R*.6,R*.12,'#7a4ba0');
+  }
+  else if(t==='thr'){
+    c.fillStyle='#f1ece9';c.strokeStyle='#cfc3c0';c.lineWidth=1;c.beginPath();c.ellipse(0,0,R,R*.7,0,0,7);c.fill();c.stroke();
+    c.fillStyle='#5a3d8f';c.beginPath();c.ellipse(0,0,R*.55,R*.4,0,0,7);c.fill();
+    for(let i=0;i<3;i++)dot(R*.7+(sr()-.5)*R*.1,(sr()-.5)*R*.5,R*.07,'#3a2060');
+  }
+  else if(t==='tryp'){
+    const P=[];for(let i=0;i<=24;i++){const s=i/24;P.push([-R+2*R*s,R*.15*Math.sin(s*9)]);}
+    c.strokeStyle='#7184bd';c.lineCap='round';
+    for(let i=1;i<P.length;i++){c.lineWidth=R*.12*(1+Math.sin(Math.PI*i/24));c.beginPath();c.moveTo(P[i-1][0],P[i-1][1]);c.lineTo(P[i][0],P[i][1]);c.stroke();}
+    dot(0,P[12][1],R*.1,'#55287c');c.lineWidth=2;c.beginPath();c.moveTo(P[24][0],P[24][1]);c.quadraticCurveTo(R*1.2,-R*.2,R*1.4,0);c.stroke();
+  }
+  c.restore();
+}
+
+inits.darah=function(){
+  const cv=$('#bl-cv'),c=cv.getContext('2d'),info=$('#bl-info');
+  let sp='anjing',state='normal',mode='belajar',field=null,cx=1200,cy=900,sel=null,quiz=null,pen='neut',checked=false;
+  fillSelect($('#bl-sp'),Object.entries(BLD).map(([k,s])=>[k,s.n]));
+  const STATES=[['normal','Normal'],['anemia','Anemia regeneratif'],['parasit','Parasit darah']];
+  const MODES=[['belajar','Belajar'],['kuis','Kuis sel'],['hitung','Hitung diferensial']];
+  const btns=(id,arr,cur)=>{$(id).innerHTML=arr.map(([k,t])=>`<button class="b${k===cur?' on':''}" data-k="${k}">${t}</button>`).join(' ');};
+  const isW=t=>BLD[sp].wbc.includes(t);
+  const hasPart=()=>true;
+
+  function render(){
+    const S=BLD[sp];c.setTransform(1,0,0,1,0,0);c.fillStyle='#f5e9e6';c.fillRect(0,0,700,520);
+    c.translate(350-cx,260-cy);
+    const vis=(o,m)=>Math.abs(o.x-cx)<350+m&&Math.abs(o.y-cy)<260+m;
+    field.rbc.forEach(o=>{if(vis(o,70))drawBlood(c,o,S);});
+    field.other.forEach(o=>{if(vis(o,120))drawBlood(c,o,S);});
+    field.other.forEach(o=>{
+      if(!vis(o,120))return;
+      if(o===sel||(quiz&&o===quiz.target)){c.strokeStyle=o===sel?'#4cc9a6':'#f2b84b';c.lineWidth=3;c.beginPath();c.arc(o.x,o.y,Math.max(o.r,14)+8,0,7);c.stroke();}
+      if(mode==='hitung'&&o.mark){
+        const ok=o.mark===o.t;c.fillStyle=checked?(ok?'#2e9e5b':'#c93a3a'):TC[o.mark];
+        c.beginPath();c.roundRect(o.x-11,o.y-o.r-26,22,20,5);c.fill();c.fillStyle='#fff';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText(SI[o.mark]||'?',o.x,o.y-o.r-11);
+      }
+    });
+    c.setTransform(1,0,0,1,0,0);
+    c.fillStyle='#000';c.fillRect(20,490,55,4);c.font='12px sans-serif';c.textAlign='left';c.fillText('10 µm',20,484);
+  }
+  const clamp=()=>{cx=Math.min(field.W-100,Math.max(100,cx));cy=Math.min(field.H-100,Math.max(100,cy));};
+
+  function summary(){
+    const S=BLD[sp],names=[...S.wbc,S.plt];
+    info.innerHTML=`<h2>Ulas darah ${S.n}</h2><p class="muted">Pewarnaan Wright-Giemsa, perbesaran ± 1000×. Seret preparat untuk menggeser.</p>
+    <h3>Kondisi</h3><p>${BST[state]}</p>
+    ${state==='parasit'?`<p><b>Parasit pada ${S.n}:</b> ${S.par.txt}</p>`:''}
+    <h3>Eritrosit ${S.n}</h3><p>${S.rbc.txt}</p>
+    <h3>Nilai acuan hitung jenis leukosit (%)</h3>
+    <div class="scroll" style="max-height:none"><table><tr><th>Sel</th><th>Kisaran</th></tr>${S.wbc.map(k=>`<tr><td>${SN[k]}</td><td>${S.ref[k][0]}–${S.ref[k][1]}</td></tr>`).join('')}</table></div>
+    <h3>Lompat ke sel</h3><div class="chips">${names.map(k=>`<span class="chip" data-k="${k}">${SN[k]}</span>`).join('')}${state==='parasit'&&S.par.k==='tryp'?'<span class="chip" data-k="tryp">Trypanosoma</span>':''}</div>
+    <p class="note">Kisaran bersifat perkiraan umum dan berbeda antarlaboratorium, usia, dan metode. Ilustrasi skematis buatan kode; bandingkan dengan atlas hematologi veteriner.</p>`;
+    $$('.chip',info).forEach(ch=>ch.onclick=()=>{
+      const cands=field.other.filter(o=>o.t===ch.dataset.k);if(!cands.length)return;
+      const o=cands[Math.random()*cands.length|0];sel=o;cx=o.x;cy=o.y;render();showCell(o);
+    });
+  }
+  function showCell(cell){
+    const S=BLD[sp],d=CI[cell.t];let extra='';
+    if(cell.t==='rbc'){
+      extra=`<h3>Pada ${S.n}</h3><p>${S.rbc.txt}</p>`;
+      if(cell.par)extra+=`<h3>Parasit terlihat</h3><p>${S.par.txt}</p>`;
+      if(cell.poly)extra+=`<h3>Polikromasia</h3><p>Sel lebih besar berwarna biru keabuan: retikulosit (eritrosit muda). Tanda regenerasi sumsum tulang.</p>`;
+    }else if(S.notes[cell.t])extra=`<h3>Pada ${S.n}</h3><p>${S.notes[cell.t]}</p>`;
+    info.innerHTML=`<button class="b" id="blback">← Ringkasan</button><h2 style="margin-top:10px">${d.n}</h2><h3>Ciri</h3><p>${d.ciri}</p><h3>Fungsi</h3><p>${d.fn}</p>${extra}<h3>Makna klinis</h3><p>${d.klin}</p>`;
+    $('#blback',info).onclick=()=>{sel=null;summary();render();};
+  }
+
+  /* kuis */
+  function nextQ(){
+    const pool=field.other.filter(o=>o.t!=='tryp');
+    quiz.target=pool[Math.random()*pool.length|0];quiz.done=false;quiz.last=null;cx=quiz.target.x+(Math.random()-.5)*160;cy=quiz.target.y+(Math.random()-.5)*120;clamp();qUI();render();
+  }
+  function qUI(){
+    const S=BLD[sp],opts=BSHUF([...S.wbc,S.plt]);
+    let h=`<h2>Kuis sel</h2><p>Sel yang dilingkari kuning itu apa?</p><p class="muted">Skor: ${quiz.ok} / ${quiz.n}</p>`;
+    if(!quiz.done)h+=`<div class="chips">${opts.map(k=>`<button class="b" data-q="${k}">${SN[k]}</button>`).join('')}</div>`;
+    else{const t=quiz.target.t,d=CI[t];h+=`<p><span class="tag ${quiz.last===t?'ok':'no'}">${quiz.last===t?'Benar':'Kurang tepat'}</span> Jawaban: <b>${SN[t]}</b></p><h3>Ciri</h3><p>${d.ciri}</p>${S.notes[t]?`<p>${S.notes[t]}</p>`:''}<p><button class="b" id="qnext">Soal berikutnya →</button></p>`;}
+    info.innerHTML=h;
+    $$('[data-q]',info).forEach(b=>b.onclick=()=>{quiz.n++;quiz.last=b.dataset.q;if(quiz.last===quiz.target.t)quiz.ok++;quiz.done=true;qUI();});
+    const nx=$('#qnext',info);if(nx)nx.onclick=nextQ;
+  }
+
+  /* hitung diferensial */
+  function countUI(){
+    const S=BLD[sp],all=field.other.filter(o=>S.wbc.includes(o.t)),marked=all.filter(o=>o.mark);
+    const cnt={};S.wbc.forEach(k=>cnt[k]=marked.filter(o=>o.mark===k).length);
+    const n=marked.length,correct=marked.filter(o=>o.mark===o.t).length;
+    info.innerHTML=`<h2>Hitung diferensial</h2><p>Pilih jenis sel, lalu klik sel putih yang cocok. Geser preparat untuk mencari sel. Target: 100 sel.</p>
+    <div class="chips">${S.wbc.map(k=>`<button class="b${k===pen?' on':''}" data-p="${k}">${SN[k]}</button>`).join('')}</div>
+    <p><b>${n}</b> / 100 sel dihitung ${checked&&n?`· akurasi <b>${Math.round(correct/n*100)}%</b>`:''}</p>
+    <div class="scroll" style="max-height:none"><table><tr><th>Sel</th><th>Jumlah</th><th>%</th><th>Acuan</th></tr>${S.wbc.map(k=>{const pc=n?Math.round(cnt[k]/n*100):0,r=S.ref[k],st=n<20?'':pc<r[0]?' ↓':pc>r[1]?' ↑':' ✓';return `<tr><td>${SN[k]}</td><td>${cnt[k]}</td><td>${pc}${st}</td><td>${r[0]}–${r[1]}</td></tr>`;}).join('')}</table></div>
+    <p><button class="b" id="chk">Periksa jawaban</button> <button class="b" id="rst">Reset</button></p>
+    <p class="note">Tanda ✓ berarti persentasemu masuk kisaran acuan, ↑/↓ di atas/bawah kisaran. Setelah "Periksa", label hijau = benar, merah = salah.</p>`;
+    $$('[data-p]',info).forEach(b=>b.onclick=()=>{pen=b.dataset.p;countUI();});
+    $('#chk',info).onclick=()=>{checked=true;countUI();render();};
+    $('#rst',info).onclick=()=>{field.other.forEach(o=>delete o.mark);checked=false;countUI();render();};
+  }
+
+  function enter(){
+    sel=null;quiz=null;
+    if(mode==='belajar'){summary();render();}
+    else if(mode==='kuis'){quiz={ok:0,n:0,target:null,done:false};nextQ();}
+    else{pen=BLD[sp].wbc[0];countUI();render();}
+  }
+  function build(){field=genField(sp,state);cx=field.W/2;cy=field.H/2;checked=false;btns('#bl-state',STATES,state);btns('#bl-mode',MODES,mode);enter();}
+
+  function hit(wx,wy){
+    for(let i=field.other.length-1;i>=0;i--){const o=field.other[i];if(Math.hypot(o.x-wx,o.y-wy)<Math.max(o.r,14)+3)return o;}
+    for(let i=0;i<field.rbc.length;i++){const o=field.rbc[i];if(Math.abs(o.x-wx)<o.r&&Math.hypot(o.x-wx,o.y-wy)<o.r)return o;}
+    return null;
+  }
+  $('#bl-sp').onchange=e=>{sp=e.target.value;build();};
+  $('#bl-state').onclick=e=>{const k=e.target.dataset.k;if(!k)return;state=k;build();};
+  $('#bl-mode').onclick=e=>{const k=e.target.dataset.k;if(!k)return;mode=k;btns('#bl-mode',MODES,mode);enter();};
+  let drag=null;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cx,cy,moved:false};});
+  cv.addEventListener('pointermove',e=>{
+    if(!drag)return;const r=cv.getBoundingClientRect(),k=cv.width/r.width,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if(dx*dx+dy*dy>16)drag.moved=true;cx=drag.cx-dx*k;cy=drag.cy-dy*k;clamp();render();
+  });
+  cv.addEventListener('pointerup',e=>{
+    if(drag&&!drag.moved){
+      const r=cv.getBoundingClientRect(),k=cv.width/r.width,wx=cx+((e.clientX-r.left)*k-350),wy=cy+((e.clientY-r.top)*k-260),o=hit(wx,wy);
+      if(o){
+        if(mode==='belajar'){sel=o;showCell(o);render();}
+        else if(mode==='hitung'&&isW(o.t)){o.mark=pen;checked=false;countUI();render();}
+      }
+    }
+    drag=null;
+  });
+  build();
+};
+
 /* ---------- tentang ---------- */
 $('#about').innerHTML=`<h2>WonderLearn Vet</h2>
-<p>Atlas interaktif untuk mahasiswa kedokteran hewan: anatomi dan otot 3D (sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular), anatomi mata 3D, mikroskop parasit virtual, histopatologi, embriologi, dan perbandingan reproduksi.</p>
+<p>Atlas interaktif untuk mahasiswa kedokteran hewan: anatomi dan otot 3D (sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular), anatomi mata 3D, mikroskop parasit virtual, histopatologi, embriologi, perbandingan reproduksi, dan ulas darah (hematologi) dengan kuis dan latihan hitung jenis leukosit.</p>
 <h2>Catatan penting</h2>
 <p>Semua model dan gambar dibuat dengan kode (skematis) agar bebas hak cipta. Materi berupa ringkasan belajar dan nilai (mis. protein, lama gestasi) berupa perkiraan dari literatur umum. Selalu cocokkan dengan atlas dan buku rujukan (König &amp; Liebich, Dyce, Miller's Anatomy of the Dog, buku parasitologi dan patologi veteriner). Informasi injeksi hanya untuk belajar anatomi, bukan petunjuk dosis atau tindakan medis.</p>
 <h2>Menambah foto atlas sendiri</h2>
