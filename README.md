@@ -1,6 +1,6 @@
-# WonderLearn Vet 🦉
+# 101daily
 
-Atlas interaktif untuk mahasiswa kedokteran hewan. Satu file (`index.html`), tanpa build.
+Atlas interaktif 101daily untuk mahasiswa kedokteran hewan. Satu file (`index.html`), tanpa build.
 
 ## Isi
 - **Anatomi & Otot 3D**: sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular. Putar 360°, klik otot untuk nama, fungsi, protein, dan lokasi injeksi. Ada mode **Kuis otot**.
@@ -15,9 +15,9 @@ Atlas interaktif untuk mahasiswa kedokteran hewan. Satu file (`index.html`), tan
 Buka `index.html` di browser (perlu internet untuk memuat Three.js dari unpkg).
 
 ## GitHub Pages
-1. Buat repo `WonderLearnVet`, unggah `index.html` dan `README.md`.
+1. Buat repo `101daily.github.io` di akun/organisasi `101daily`, unggah `index.html` dan `README.md`.
 2. Settings → Pages → Branch `main` / root → Save.
-3. Alamat: `https://<username>.github.io/WonderLearnVet/`
+3. Alamat: `https://101daily.github.io/`
 
 ## Foto atlas sendiri
 Taruh foto yang kamu punya hak pakainya di `assets/repro/` dengan nama `sapi-betina.jpg`, `anjing-jantan.jpg`, dst (kunci: sapi, kambing, kuda, babi, anjing, kucing, ayam, kura, ular). Tampil otomatis di tab Reproduksi.
