@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WonderLearn Vet — Atlas Interaktif Kedokteran Hewan</title>
+<style>
+:root{--bg:#0f1720;--card:#16212d;--card2:#1c2a38;--line:#2a3b4d;--tx:#e8eef5;--mut:#9fb0c3;--ac:#4cc9a6;--ac2:#f2b84b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:12px 16px 0;background:#0b121a;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+h1{font-size:18px;margin:0 0 8px}
+h1 small{color:var(--mut);font-weight:400;font-size:12px;margin-left:8px}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav button{background:transparent;border:0;color:var(--mut);padding:9px 12px;cursor:pointer;border-bottom:3px solid transparent;font:inherit;white-space:nowrap}
+nav button.on{color:var(--tx);border-color:var(--ac)}
+main{padding:14px;max-width:1280px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:14px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+.stage{position:relative;background:radial-gradient(circle at 50% 35%,#223447,#0d151d);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.view3d{width:100%;height:min(64vh,620px);min-height:360px}
+.view3d canvas{display:block;width:100%;height:100%;touch-action:none}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:10px 12px;background:var(--card);border-top:1px solid var(--line);font-size:13px}
+.bar label{display:flex;gap:6px;align-items:center;color:var(--mut)}
+select,button.b{background:var(--card2);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit}
+button.b{cursor:pointer}button.b:hover{border-color:var(--ac)}button.b.on{background:var(--ac);color:#04251c;border-color:var(--ac)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;max-height:calc(min(64vh,620px) + 56px);overflow:auto}
+.panel h2{margin:0 0 2px;font-size:17px}.panel h3{margin:14px 0 4px;font-size:12px;color:var(--ac);text-transform:uppercase;letter-spacing:.05em}
+.panel p{margin:4px 0}
+.lat{color:var(--ac2);font-style:italic}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+.tag.ok{background:#1d5a45;color:#9ff0cf}.tag.warn{background:#6a4a12;color:#ffd98a}.tag.no{background:#6a2422;color:#ffb3b0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:var(--card2);border:1px solid var(--line);color:var(--tx);border-radius:99px;padding:3px 10px;font-size:12px;cursor:pointer}
+.chip.on{background:var(--ac);color:#04251c;border-color:var(--ac)}
+.muted{color:var(--mut)}.note{font-size:12px;color:var(--mut);border-left:3px solid var(--ac2);padding-left:8px;margin-top:10px}
+canvas.flat{display:block;width:100%;height:auto;background:#111;touch-action:none}
+canvas.round{border-radius:50%;max-width:640px;margin:0 auto;box-shadow:0 0 0 8px #000,0 0 0 10px #444}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:var(--card2);position:sticky;top:0}tr.sel td{background:#173a33}
+.scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:8px;margin-top:12px}
+#tip{position:fixed;pointer-events:none;background:#000c;color:#fff;padding:3px 8px;border-radius:6px;font-size:12px;z-index:50;display:none}
+.imgslot{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.imgslot img{max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--line)}
+input[type=range]{accent-color:var(--ac)}
+.about{max-width:820px}.about h2{margin-top:22px}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header>
+<h1>🦉 WonderLearn Vet<small>Atlas interaktif kedokteran hewan</small></h1>
+<nav>
+<button class="on" data-tab="anatomi">Anatomi &amp; Otot 3D</button>
+<button data-tab="mata">Mata 3D</button>
+<button data-tab="mikro">Mikroskop Parasit</button>
+<button data-tab="histo">Histopatologi</button>
+<button data-tab="embrio">Embriologi</button>
+<button data-tab="repro">Reproduksi</button>
+<button data-tab="tentang">Tentang</button>
+</nav>
+</header>
+<main>
+
+<section class="tab on" id="tab-anatomi"><div class="layout"><div>
+<div class="stage"><div class="view3d" id="anat-view"></div>
+<div class="bar">
+<label>Hewan <select id="anat-sp"></select></label>
+<label>Kulit/cangkang <input type="range" id="anat-skin" min="0" max="100" value="30"></label>
+<label><input type="checkbox" id="anat-auto"> Putar otomatis</label>
+<button class="b" id="anat-reset">Reset kamera</button>
+</div></div>
+<p class="muted">Seret untuk memutar 360°, scroll/cubit untuk zoom, klik otot untuk melihat fungsi, protein, dan lokasi injeksi.</p>
+</div><aside class="panel" id="anat-info"></aside></div></section>
+
+<section class="tab" id="tab-mata"><div class="layout"><div>
+<div class="stage"><div class="view3d" id="eye-view"></div>
+<div class="bar">
+<label>Hewan <select id="eye-sp"></select></label>
+<label>Potongan <input type="range" id="eye-cut" min="0" max="100" value="0"></label>
+<label><input type="checkbox" id="eye-musc" checked> Otot luar mata</label>
+<label><input type="checkbox" id="eye-auto"> Putar otomatis</label>
+</div></div>
+<p class="muted">Putar mata 360°. Geser slider "Potongan" untuk membelah bola mata, lalu klik bagiannya.</p>
+</div><aside class="panel" id="eye-info"></aside></div></section>
+
+<section class="tab" id="tab-mikro"><div class="layout"><div>
+<div class="stage" style="padding:16px"><canvas id="mic-cv" class="flat round" width="640" height="640"></canvas></div>
+<div class="bar" style="border:1px solid var(--line);border-radius:0 0 12px 12px">
+<label>Preparat <select id="mic-slide"></select></label>
+<span id="mic-obj"></span>
+<label>Fokus <input type="range" id="mic-focus" min="0" max="100" value="10"></label>
+<button class="b" id="mic-auto">Fokus otomatis</button>
+<button class="b" id="mic-hint">Petunjuk</button>
+<label><input type="checkbox" id="mic-lbl"> Label</label>
+</div>
+<p class="muted">Seret preparat untuk menggeser meja objek. Ganti lensa objektif lalu fokuskan ulang. Klik objek untuk identifikasi.</p>
+</div><aside class="panel" id="mic-info"></aside></div></section>
+
+<section class="tab" id="tab-histo"><div class="layout"><div>
+<div class="stage"><canvas id="his-cv" class="flat" width="700" height="520"></canvas>
+<div class="bar"><span id="his-tissue"></span><span id="his-state"></span></div></div>
+<p class="muted">Ilustrasi skematis pewarnaan H&amp;E (bukan foto preparat asli). Klik struktur untuk keterangan.</p>
+</div><aside class="panel" id="his-info"></aside></div></section>
+
+<section class="tab" id="tab-embrio"><div class="layout"><div>
+<div class="stage"><canvas id="emb-cv" class="flat" width="700" height="520"></canvas>
+<div class="bar"><label>Tahap <input type="range" id="emb-sl" min="0" max="8" value="0" style="width:260px"></label><span id="emb-name"></span></div></div>
+<p class="muted">Geser slider untuk melihat tahap perkembangan. Klik lapisan germinal pada tahap gastrula/neurula.</p>
+</div><aside class="panel" id="emb-info"></aside></div></section>
+
+<section class="tab" id="tab-repro"><div class="layout"><div>
+<div class="stage"><canvas id="rep-cv" class="flat" width="720" height="440"></canvas>
+<div class="bar"><label>Hewan <select id="rep-sp"></select></label><span id="rep-sex"></span></div></div>
+<p class="muted">Diagram skematis. Klik bagian saluran reproduksi untuk keterangan.</p>
+</div><aside class="panel" id="rep-info"></aside></div>
+<div class="scroll"><table id="rep-table"></table></div>
+</section>
+
+<section class="tab" id="tab-tentang"><div class="about" id="about"></div></section>
+
+</main>
+<div id="tip"></div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const tipEl=$('#tip');
+function tip(txt,e){if(!txt){tipEl.style.display='none';return;}tipEl.textContent=txt;tipEl.style.display='block';tipEl.style.left=(e.clientX+12)+'px';tipEl.style.top=(e.clientY+12)+'px';}
+const inits={},done={};
+$$('nav button').forEach(b=>b.addEventListener('click',()=>{
+  $$('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));
+  const k=b.dataset.tab;
+  if(inits[k]&&!done[k]){done[k]=1;inits[k]();}
+  window.dispatchEvent(new Event('resize'));
+}));
+function fillSelect(sel,items){sel.innerHTML=items.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');}
+
+/* ---------- viewer 3D umum ---------- */
+function createViewer(container,opts={}){
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.localClippingEnabled=true;
+  container.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(40,1,0.05,200);
+  const controls=new OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x3a4a5a,1.1));
+  const d1=new THREE.DirectionalLight(0xffffff,1.7);d1.position.set(5,8,6);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x9fc4ff,0.7);d2.position.set(-6,3,-5);scene.add(d2);
+  function resize(){const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  new ResizeObserver(resize).observe(container);
+  const v={renderer,scene,camera,controls,container,frameFns:[]};
+  function loop(){requestAnimationFrame(loop);if(!container.offsetParent)return;controls.update();v.frameFns.forEach(f=>f());renderer.render(scene,camera);}
+  loop();
+  v.fit=(obj,dirv)=>{
+    const box=new THREE.Box3().setFromObject(obj);const c=box.getCenter(new THREE.Vector3());const s=box.getSize(new THREE.Vector3()).length();
+    controls.target.copy(c);const dir=(dirv||new THREE.Vector3(1,.45,1.35)).clone().normalize();
+    camera.position.copy(c).add(dir.multiplyScalar(s*1.25));camera.near=s/100;camera.far=s*20;camera.updateProjectionMatrix();controls.update();
+    v.home={pos:camera.position.clone(),tgt:c.clone()};
+  };
+  v.reset=()=>{if(v.home){camera.position.copy(v.home.pos);controls.target.copy(v.home.tgt);controls.update();}};
+  return v;
+}
+function enablePicking(v,getTargets,onPick,onHover,filter){
+  const ray=new THREE.Raycaster(),m=new THREE.Vector2();const el=v.renderer.domElement;let down=null;
+  function hit(e){
+    const r=el.getBoundingClientRect();m.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+    ray.setFromCamera(m,v.camera);
+    let hs=ray.intersectObjects(getTargets(),false);if(filter)hs=hs.filter(filter);
+    return hs.length?hs:null;
+  }
+  el.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+  el.addEventListener('pointerup',e=>{if(!down)return;const dx=e.clientX-down[0],dy=e.clientY-down[1];down=null;if(dx*dx+dy*dy<25)onPick(hit(e));});
+  el.addEventListener('pointermove',e=>{if(e.buttons)return;onHover&&onHover(hit(e),e);});
+  el.addEventListener('pointerleave',()=>onHover&&onHover(null,{clientX:0,clientY:0}));
+}
+
+/* ---------- helper geometri ---------- */
+function ell(r,pos,mat,rz=0){const m=new THREE.Mesh(new THREE.SphereGeometry(1,28,18),mat);m.scale.set(r[0],r[1],r[2]);m.position.set(pos[0],pos[1],pos[2]);m.rotation.z=rz;return m;}
+function between(a,b,r0,r1,mat){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b);const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,A.distanceTo(B),16),mat);m.position.copy(A).add(B).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());return m;}
+function mkMuscleKit(group){
+  const byId={},mats={};
+  const mat=id=>mats[id]||(mats[id]=new THREE.MeshStandardMaterial({color:0xb5403a,roughness:.55,emissive:0x000000}));
+  const reg=(id,m)=>{m.userData.muscle=id;group.add(m);(byId[id]=byId[id]||[]).push(m);};
+  return {byId,mats,reg,mat,
+    ell(id,r,pos,rz=0){[1,-1].forEach(s=>{if(s<0&&Math.abs(pos[2])<1e-6)return;reg(id,ell(r,[pos[0],pos[1],pos[2]*s],mat(id),rz));});},
+    tube(id,pts,rad){[1,-1].forEach(s=>{const P=pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]*s));reg(id,new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(P),40,rad,10,false),mat(id)));});}
+  };
+}
+
+/* ---------- data otot ---------- */
+const MUS={
+quad:{
+ brachio:{lat:'M. brachiocephalicus',idn:'Otot leher–lengan',reg:'Sisi leher hingga bahu',fn:'Memajukan anggota gerak depan; bila kaki tertahan, menarik leher/kepala ke samping. Membentuk sebagian besar kontur sisi leher.',fib:'Otot lokomotor, campuran serat tipe I dan II.'},
+ trapezius:{lat:'M. trapezius',idn:'Otot trapezius',reg:'Punggung depan (gumba/withers) hingga bahu',fn:'Mengangkat dan menstabilkan skapula ke arah dorsal-kranial; menahan bahu terhadap batang tubuh.',fib:'Otot postural-lokomotor.'},
+ latissimus:{lat:'M. latissimus dorsi',idn:'Otot punggung lebar',reg:'Sisi dada, dari punggung ke lengan atas',fn:'Menarik anggota depan ke belakang (retraksi) dan ekstensi sendi bahu; ikut menopang dada di antara dua kaki depan.',fib:'Dominan serat cepat.'},
+ triceps:{lat:'M. triceps brachii',idn:'Otot trisep lengan',reg:'Lengan atas bagian belakang',fn:'Ekstensor siku: menegakkan kaki depan dan menahan berat tubuh bagian depan.',fib:'Banyak serat tipe I (postural) pada hewan besar.'},
+ biceps:{lat:'M. biceps brachii',idn:'Otot bisep lengan',reg:'Lengan atas bagian depan',fn:'Fleksor siku dan penstabil bahu. Pada kuda dan ruminansia ikut membentuk "stay apparatus" (struktur bertendon yang menahan sendi saat berdiri).',fib:'Kaya jaringan tendon.'},
+ longissimus:{lat:'M. longissimus dorsi',idn:'Otot punggung panjang (epaksial)',reg:'Sepanjang punggung dan pinggang',fn:'Ekstensi dan penstabil tulang belakang; kontraksi sepihak membengkokkan punggung ke samping. Otot terbesar tubuh (bagian "has luar/sirloin").',fib:'Campuran, lebih banyak serat postural.'},
+ pectoralis:{lat:'Mm. pectorales',idn:'Otot dada',reg:'Dada bawah, di antara kaki depan',fn:'Aduksi dan retraksi anggota depan; menggantung dan menopang rongga dada.',fib:'Campuran.'},
+ obliquus:{lat:'M. obliquus externus abdominis',idn:'Otot miring perut luar',reg:'Sisi perut (flank)',fn:'Menekan isi perut (abdominal press) saat defekasi, urinasi, partus; membantu ekspirasi dan fleksi tulang belakang.',fib:'Otot lebar tipis, serat cepat dan lambat.'},
+ gluteus:{lat:'M. gluteus medius',idn:'Otot bokong tengah',reg:'Pantat (croup)',fn:'Ekstensi dan abduksi sendi panggul; penggerak utama (propulsi) ke depan saat berlari/melompat.',fib:'Dominan serat cepat, massa besar.'},
+ bicepsfem:{lat:'M. biceps femoris',idn:'Otot bisep paha',reg:'Paha sisi luar',fn:'Ekstensi panggul, fleksi lutut, ekstensi tarsus (hock); abduksi paha.',fib:'Campuran.'},
+ quadriceps:{lat:'M. quadriceps femoris',idn:'Otot kuadrisep paha',reg:'Paha depan',fn:'Ekstensor lutut (stifle): menahan dan mendorong berat tubuh.',fib:'Banyak serat cepat dan sedang.'},
+ semitend:{lat:'M. semitendinosus',idn:'Otot semitendinosus (hamstring)',reg:'Paha belakang',fn:'Ekstensi panggul dan fleksi lutut; bersama biceps femoris membentuk kelompok hamstring.',fib:'Campuran. Letaknya dekat N. ischiadicus.'},
+ gastroc:{lat:'M. gastrocnemius',idn:'Otot betis',reg:'Betis (tungkai bawah belakang)',fn:'Ekstensi tarsus (hock) dan fleksi lutut; tendonnya menjadi tendo calcaneus communis (Achilles).',fib:'Sebagian besar serat cepat, banyak jaringan tendon.'},
+ masseter:{lat:'M. masseter',idn:'Otot pengunyah',reg:'Pipi/rahang',fn:'Menutup rahang untuk mengunyah dan menggigit; pada herbivora ikut menggerakkan rahang secara lateral untuk menggiling.',fib:'Pada karnivora banyak serat tipe 2M (khusus rahang).'}
+},
+bird:{
+ pectoralis:{lat:'M. pectoralis (major)',idn:'Otot dada (pectoralis)',reg:'Dada, di kedua sisi tulang lunas (carina sterni)',fn:'Menurunkan sayap (downstroke). Otot terbesar ayam dan bagian "daging dada".',fib:'Pada ayam didominasi serat putih cepat tipe IIB (glikolitik), berwarna pucat.'},
+ supracoracoideus:{lat:'M. supracoracoideus',idn:'Otot supracoracoideus (tenderloin)',reg:'Dada, di bawah M. pectoralis',fn:'Mengangkat sayap (upstroke) lewat tendon yang melintasi foramen triosseum seperti katrol.',fib:'Serat cepat.'},
+ biceps_b:{lat:'M. biceps brachii',idn:'Otot bisep sayap',reg:'Lengan atas sayap',fn:'Fleksi siku (melipat sayap) dan membantu menahan sayap.',fib:'Campuran.'},
+ iliotibialis:{lat:'M. iliotibialis lateralis',idn:'Otot paha luar',reg:'Paha',fn:'Ekstensi lutut dan fleksi panggul; mengayun kaki ke depan saat berjalan.',fib:'Otot kaki ayam bersifat merah (oksidatif), kaya mioglobin.'},
+ gastrocnemius:{lat:'M. gastrocnemius',idn:'Otot betis (drumstick)',reg:'Tungkai bawah',fn:'Ekstensi sendi tarsus (hock); mendorong tubuh saat berjalan/mengais.',fib:'Merah, banyak jaringan ikat dan tendon.'}
+},
+turtle:{
+ retractor:{lat:'M. retractor capitis colli',idn:'Otot penarik kepala',reg:'Leher',fn:'Menarik kepala dan leher masuk ke dalam cangkang.',fib:'Otot leher panjang; kontraksinya melipat leher (pada kura-kura leher-samping atau leher-tersembunyi).'},
+ pectoralis:{lat:'M. pectoralis',idn:'Otot dada',reg:'Bagian dalam plastron',fn:'Menarik lengan depan ke arah tubuh (aduksi) dan retraksi lengan ke dalam cangkang.',fib:'Otot dalam cangkang; digambar disederhanakan.'},
+ triceps:{lat:'M. triceps brachii',idn:'Otot trisep',reg:'Lengan depan atas',fn:'Ekstensi siku; mendorong tubuh saat berjalan atau berenang.',fib:'Otot anggota gerak.'},
+ biceps:{lat:'M. biceps brachii',idn:'Otot bisep',reg:'Lengan depan atas',fn:'Fleksi siku.',fib:'Otot anggota gerak.'},
+ gastroc:{lat:'M. gastrocnemius',idn:'Otot betis',reg:'Tungkai belakang',fn:'Ekstensi pergelangan dan telapak kaki belakang.',fib:'Otot anggota gerak.'},
+ caudofem:{lat:'M. caudofemoralis',idn:'Otot ekor–paha',reg:'Pangkal ekor',fn:'Menarik tungkai belakang ke belakang (retraksi femur) dan menggerakkan ekor.',fib:'Otot kuat pada pangkal ekor.'}
+},
+snake:{
+ semispinalis:{lat:'M. semispinalis–spinalis',idn:'Otot epaksial medial',reg:'Sepanjang punggung dekat garis tengah',fn:'Menegakkan dan menstabilkan tulang belakang; menghubungkan beberapa ruas tulang belakang.',fib:'Pita otot dengan tendon panjang antar-vertebra.'},
+ longissimus:{lat:'M. longissimus dorsi',idn:'Otot epaksial tengah',reg:'Punggung samping',fn:'Menggerakkan tubuh menyamping (undulasi) dan membantu menekan mangsa saat melilit.',fib:'Dominan serat cepat untuk gerak cepat, ada serat lambat untuk tenaga lilit.'},
+ iliocostalis:{lat:'M. iliocostalis',idn:'Otot epaksial lateral',reg:'Sisi tubuh, menempel ke iga',fn:'Menggerakkan iga dan menekuk tubuh ke samping; berperan pada lilitan dan pernapasan.',fib:'Pita lateral, bersama otot lain menjalankan gerak merayap.'},
+ costocut:{lat:'Mm. costocutaneus (superior)',idn:'Otot iga–kulit',reg:'Sisi bawah tubuh',fn:'Menggerakkan sisik perut (scute) yang menjadi "pijakan" gerak merayap rectilinear.',fib:'Otot tipis dari iga ke kulit.'}
+}};
+const INJ={
+ sapi:{brachio:{lv:'ok',t:'Otot leher adalah lokasi IM yang dianjurkan pada sapi (terutama pedaging) agar tidak merusak potongan daging bernilai tinggi (prinsip Beef Quality Assurance). Hindari menyuntik di dekat alur jugularis.'},
+  gluteus:{lv:'no',t:'Hindari IM di area bokong/paha pada sapi yang akan dipotong: jaringan parut merusak daging.'},
+  bicepsfem:{lv:'no',t:'Hindari untuk sapi potong (potongan daging mahal).'},semitend:{lv:'no',t:'Hindari untuk sapi potong; dekat N. ischiadicus.'},
+  longissimus:{lv:'no',t:'Jangan disuntik: bagian ini menjadi potongan sirloin/striploin.'},triceps:{lv:'warn',t:'Kurang disarankan dibanding leher (bagian chuck).'}},
+ kambing:{brachio:{lv:'ok',t:'Leher adalah lokasi IM umum pada kambing/domba; aman untuk hewan konsumsi.'},
+  semitend:{lv:'warn',t:'Paha belakang dapat dipakai pada hewan non-konsumsi; waspadai N. ischiadicus.'},bicepsfem:{lv:'warn',t:'Alternatif pada hewan non-konsumsi; waspadai N. ischiadicus.'},
+  quadriceps:{lv:'warn',t:'Alternatif pada hewan kecil; hindari menembus sendi lutut.'}},
+ kuda:{brachio:{lv:'ok',t:'Leher (segitiga leher di antara ligamentum nuchae, tulang leher, dan skapula) adalah lokasi IM umum. Hindari alur jugularis dan sisi dekat tulang leher.'},
+  pectoralis:{lv:'ok',t:'Otot dada: alternatif IM untuk volume besar; jauh dari vena dan jarang menimbulkan abses ke bawah.'},
+  gluteus:{lv:'warn',t:'Bokong dapat dipakai, tetapi risiko abses dan kuda dapat menendang; operator harus aman.'},
+  semitend:{lv:'warn',t:'Paha belakang (semitendinosus/semimembranosus) dapat dipakai; dekat N. ischiadicus dan berisiko tendangan.'},
+  longissimus:{lv:'no',t:'Bukan lokasi injeksi rutin.'}},
+ anjing:{longissimus:{lv:'ok',t:'Otot epaksial lumbar (di samping prosesus spinosus lumbar) adalah lokasi IM yang umum dan relatif aman.'},
+  quadriceps:{lv:'ok',t:'Paha depan: lokasi IM umum; arahkan jarum menjauhi tulang femur.'},
+  semitend:{lv:'warn',t:'Paha belakang dekat N. ischiadicus. Bila dipakai, aspirasi dulu dan arahkan jarum menjauhi saraf.'},
+  bicepsfem:{lv:'warn',t:'Paha luar-belakang dekat N. ischiadicus; gunakan dengan hati-hati.'},
+  triceps:{lv:'ok',t:'Trisep (lengan atas belakang): lokasi IM yang umum digunakan pada anjing.'}},
+ kucing:{quadriceps:{lv:'ok',t:'Paha depan: lokasi IM yang umum pada kucing.'},
+  longissimus:{lv:'ok',t:'Otot epaksial lumbar: lokasi IM alternatif.'},
+  semitend:{lv:'warn',t:'Paha belakang dekat N. ischiadicus; hindari bila ada alternatif.'},
+  bicepsfem:{lv:'warn',t:'Paha belakang dekat N. ischiadicus.'}},
+ ayam:{pectoralis:{lv:'ok',t:'Otot dada adalah lokasi IM yang umum pada ayam. Suntik dangkal dan hindari menembus rongga tubuh. Pada ayam pedaging dapat meninggalkan lesi pada daging dada.'},
+  iliotibialis:{lv:'ok',t:'Paha: lokasi IM alternatif (mis. untuk hewan hias); waspadai saraf di sisi dalam paha.'},
+  supracoracoideus:{lv:'warn',t:'Terletak di bawah pectoralis; suntikan dalam di dada dapat mengenainya.'}},
+ kura:{triceps:{lv:'ok',t:'Otot lengan depan sering disarankan untuk IM karena adanya sistem portal ginjal (lihat catatan).'},
+  biceps:{lv:'ok',t:'Otot lengan depan: lokasi IM yang umum disarankan.'},
+  gastroc:{lv:'warn',t:'Tungkai belakang diperdebatkan untuk obat yang dikeluarkan lewat ginjal (sistem portal ginjal).'},
+  caudofem:{lv:'warn',t:'Area pangkal ekor/belakang: diperdebatkan (sistem portal ginjal).'}},
+ ular:{semispinalis:{lv:'ok',t:'Otot epaksial pada sepertiga depan tubuh adalah lokasi IM yang lazim disarankan.'},
+  longissimus:{lv:'ok',t:'Otot epaksial pada sepertiga depan tubuh (di samping tulang belakang).'},
+  iliocostalis:{lv:'warn',t:'Dapat dipakai di sepertiga depan tubuh; hindari separuh belakang (sistem portal ginjal diperdebatkan).'}}
+};
+const SP={
+ sapi:{n:'Sapi',lat:'Bos taurus',kind:'quad',col:0xb98a5e,p:{L:1.25,H:.62,W:.5,leg:1.0,lr:.09,neck:.75,nth:.35,hl:.62,hang:-.9,tail:.9},
+  prot:'Daging segar tanpa lemak ± 20–22 g protein/100 g (air ± 70–75%; lemak bervariasi menurut potongan).',
+  fact:'Ruminansia dengan lambung 4 ruang (rumen, retikulum, omasum, abomasum).',
+  routes:'SC: kulit longgar leher/belakang bahu. IV: v. jugularis (alur jugularis).'},
+ kambing:{n:'Kambing/Domba',lat:'Capra aegagrus hircus / Ovis aries',kind:'quad',col:0xd8c9a6,p:{L:.8,H:.38,W:.28,leg:.65,lr:.05,neck:.5,nth:.6,hl:.4,hang:-.7,tail:.2},
+  prot:'Daging ± 19–21 g protein/100 g (tanpa lemak).',fact:'Ruminansia kecil; pupil mata berbentuk horizontal.',
+  routes:'SC: kulit longgar belakang bahu/leher. IV: v. jugularis.'},
+ kuda:{n:'Kuda',lat:'Equus ferus caballus',kind:'quad',col:0x7a5233,p:{L:1.3,H:.55,W:.4,leg:1.35,lr:.075,neck:.95,nth:.85,hl:.8,hang:-1.0,tail:.9},
+  prot:'Daging ± 20–22 g protein/100 g (tanpa lemak).',fact:'Monogastrik herbivora (fermentasi di sekum dan kolon); tidak bisa muntah.',
+  routes:'SC: jarang dipakai. IV: v. jugularis.'},
+ anjing:{n:'Anjing',lat:'Canis lupus familiaris',kind:'quad',col:0xc59a62,p:{L:.75,H:.3,W:.2,leg:.55,lr:.045,neck:.35,nth:.7,hl:.5,hang:-.35,tail:.45},
+  prot:'Otot rangka mamalia pada umumnya ± 18–22 g protein/100 g; data spesifik anjing terbatas.',fact:'Karnivora dengan rumus gigi dewasa 42 gigi.',
+  routes:'SC: kulit longgar tengkuk dan belakang bahu. IV: v. cephalica antebrachii, v. saphena lateralis, v. jugularis.'},
+ kucing:{n:'Kucing',lat:'Felis catus',kind:'quad',col:0xa9a39a,p:{L:.55,H:.22,W:.16,leg:.38,lr:.032,neck:.22,nth:.7,hl:.3,hang:-.3,tail:.55},
+  prot:'Otot rangka mamalia pada umumnya ± 18–22 g protein/100 g; data spesifik kucing terbatas.',fact:'Karnivora obligat; cakar dapat ditarik masuk.',
+  routes:'SC: kulit longgar tengkuk. IV: v. cephalica, v. saphena medialis, v. jugularis.'},
+ ayam:{n:'Ayam',lat:'Gallus gallus domesticus',kind:'bird',col:0xe7d9bd,p:{},
+  prot:'Dada ± 22–23 g protein/100 g; paha ± 18–20 g protein/100 g (tanpa kulit, mentah).',fact:'Unggas; otot dada putih (glikolitik), otot kaki merah (oksidatif).',
+  routes:'SC: kulit belakang leher. IV: v. cutanea ulnaris (vena sayap).'},
+ kura:{n:'Kura-kura',lat:'Testudines (model generik)',kind:'turtle',col:0x7d8f5a,p:{},
+  prot:'± 17–20 g protein/100 g (data terbatas dan bervariasi antar spesies).',fact:'Cangkang tersusun dari karapas (atas) dan plastron (bawah); tulang rusuk menyatu dengan karapas.',
+  routes:'SC (cairan): fossa prefemoral. IV: v. jugularis, sinus supraoksipital. Catatan: sistem portal ginjal.'},
+ ular:{n:'Ular',lat:'Serpentes (model generik)',kind:'snake',col:0x6f8f4a,p:{},
+  prot:'± 18–22 g protein/100 g (data terbatas dan bervariasi antar spesies).',fact:'Hampir seluruh tubuh adalah tulang belakang, iga, dan otot aksial.',
+  routes:'IV: v. coccygea ventralis (vena ekor ventral) atau jantung oleh operator berpengalaman.'}
+};
+
+/* ---------- builders ---------- */
+function buildQuad(sp,skin){
+  const {L,H,W,leg,lr,neck,nth,hl,hang,tail}=sp.p;
+  const g=new THREE.Group(),kit=mkMuscleKit(g);
+  const dark=new THREE.MeshStandardMaterial({color:0x201a18,roughness:.7});
+  const cy=leg+H*.85;
+  g.add(ell([L,H,W],[0,cy,0],skin));
+  const nx=.82*L,ny=cy+.3*H,nr=H*.45;
+  const nex=nx+Math.cos(nth)*neck,ney=ny+Math.sin(nth)*neck;
+  g.add(between([nx-.05,ny,0],[nex,ney,0],nr*1.15,nr*.75,skin));
+  const dir=[Math.cos(hang),Math.sin(hang)],perp=[-Math.sin(hang),Math.cos(hang)];
+  const hc=[nex+dir[0]*hl*.38,ney+dir[1]*hl*.38,0];
+  g.add(ell([hl*.5,hl*.2,hl*.19],hc,skin,hang));
+  g.add(ell([hl*.22,hl*.13,hl*.13],[nex+dir[0]*hl*.86,ney+dir[1]*hl*.86,0],skin,hang));
+  [1,-1].forEach(s=>{
+    g.add(ell([hl*.035,hl*.035,hl*.035],[hc[0]+dir[0]*hl*.12+perp[0]*hl*.1,hc[1]+dir[1]*hl*.12+perp[1]*hl*.1,hl*.17*s],dark));
+    g.add(ell([hl*.07,hl*.16,hl*.035],[hc[0]-dir[0]*hl*.22+perp[0]*hl*.2,hc[1]-dir[1]*hl*.22+perp[1]*hl*.2,hl*.12*s],skin,hang-.2));
+  });
+  g.add(between([-.92*L,cy+.3*H,0],[-1.02*L,cy-tail*.7+.3*H,0],lr*.6,lr*.25,skin));
+  const zf=W*.7,xf=.58*L,xh=-.62*L;
+  [1,-1].forEach(s=>{
+    g.add(between([xf,cy-.2*H,zf*s],[xf,.04,zf*s],lr*1.35,lr*.6,skin));
+    g.add(between([xh,cy-.15*H,zf*s],[xh,.04,zf*s],lr*1.6,lr*.6,skin));
+    g.add(ell([lr*1.1,.05,lr*1.1],[xf+lr*.2,.04,zf*s],dark));
+    g.add(ell([lr*1.1,.05,lr*1.1],[xh+lr*.2,.04,zf*s],dark));
+  });
+  const surf=(u,ph)=>{const s=Math.sqrt(1-u*u);return[u*L,cy+H*s*Math.sin(ph),W*s*Math.cos(ph)];};
+  const lp=[];for(let u=-.72;u<=.61;u+=.1)lp.push(surf(u,1.1));
+  kit.tube('longissimus',lp,H*.11);
+  kit.ell('trapezius',[.24*L,.08*H,.13*W],surf(.5,1.3),-.25);
+  kit.ell('latissimus',[.3*L,.27*H,.06*W],surf(.12,.3),-.6);
+  kit.ell('obliquus',[.32*L,.25*H,.06*W],surf(-.32,-.15),.25);
+  kit.ell('pectoralis',[.17*L,.13*H,.13*W],surf(.5,-.9),0);
+  kit.ell('gluteus',[.2*L,.2*H,.11*W],surf(-.62,.95),.3);
+  const cx=(nx+nex)/2,cyn=(ny+ney)/2,pn=[-Math.sin(nth),Math.cos(nth)];
+  kit.ell('brachio',[neck*.5,nr*.45,nr*.3],[cx+pn[0]*nr*.15,cyn+pn[1]*nr*.15,nr*.8],nth);
+  kit.ell('masseter',[hl*.14,hl*.14,hl*.05],[hc[0]-dir[0]*hl*.17,hc[1]-dir[1]*hl*.17-hl*.03,hl*.19],hang);
+  const yt=cy-.15*H,up=yt*.5,yUp=yt-up*.5;
+  kit.ell('triceps',[lr*1.2,up*.55,lr],[xf-lr*.9,yUp,zf],0);
+  kit.ell('biceps',[lr*.8,up*.4,lr*.8],[xf+lr*.9,yUp,zf],0);
+  const yh=cy-.1*H,th=yh*.5,yTh=yh-th*.5,yCalf=yh-th*1.05;
+  kit.ell('quadriceps',[lr*1.5,th*.5,lr*1.35],[xh+lr*1.1,yTh,zf],0);
+  kit.ell('bicepsfem',[lr*1.5,th*.55,lr*.7],[xh,yTh,zf+lr],0);
+  kit.ell('semitend',[lr*1.1,th*.55,lr*1.1],[xh-lr*1.5,yTh,zf],0);
+  kit.ell('gastroc',[lr*.8,yh*.16,lr*.8],[xh-lr*.8,yCalf,zf],0);
+  return {g,kit};
+}
+function buildBird(sp,skin){
+  const g=new THREE.Group(),kit=mkMuscleKit(g);
+  const yel=new THREE.MeshStandardMaterial({color:0xe8b830,roughness:.6});
+  const red=new THREE.MeshStandardMaterial({color:0xc8322e,roughness:.6});
+  const dark=new THREE.MeshStandardMaterial({color:0x111111});
+  g.add(ell([.55,.36,.3],[0,.9,0],skin,.35));
+  g.add(between([.38,1.05,0],[.62,1.5,0],.17,.11,skin));
+  g.add(ell([.14,.11,.1],[.66,1.58,0],skin));
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(.05,.18,12),yel);beak.rotation.z=-Math.PI/2;beak.position.set(.84,1.55,0);g.add(beak);
+  g.add(ell([.05,.07,.015],[.66,1.7,0],red));g.add(ell([.03,.06,.02],[.75,1.47,0],red));
+  g.add(ell([.2,.3,.05],[-.55,1.12,0],skin,.5));
+  [1,-1].forEach(s=>{
+    g.add(ell([.025,.025,.025],[.72,1.61,.09*s],dark));
+    g.add(ell([.3,.17,.04],[-.05,.95,.33*s],skin,-.15));
+    const knee=[.1,.52,.22*s],hock=[-.08,.22,.2*s],foot=[-.08,.03,.2*s];
+    g.add(between([-.08,.62,.2*s],knee,.07,.06,skin));
+    g.add(between(knee,hock,.07,.04,skin));
+    g.add(between(hock,foot,.025,.02,yel));
+    [-.06,0,.06].forEach(dz=>g.add(between(foot,[.14,.02,.2*s+dz],.015,.01,yel)));
+  });
+  kit.ell('pectoralis',[.3,.2,.1],[.22,.78,.2],.35);
+  kit.ell('supracoracoideus',[.2,.1,.07],[.3,.66,.11],.35);
+  kit.ell('biceps_b',[.17,.07,.05],[.05,1.0,.37],-.15);
+  kit.ell('iliotibialis',[.17,.14,.1],[-.02,.64,.24],-.3);
+  kit.ell('gastrocnemius',[.065,.17,.065],[.01,.37,.215],-.54);
+  return {g,kit};
+}
+function buildTurtle(sp,skin){
+  const g=new THREE.Group(),kit=mkMuscleKit(g);
+  const dark=new THREE.MeshStandardMaterial({color:0x111111});
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1,40,20,0,Math.PI*2,0,Math.PI/2),skin);shell.scale.set(.95,.5,.72);shell.position.set(0,.3,0);g.add(shell);
+  g.add(ell([.9,.05,.66],[0,.28,0],skin));
+  g.add(between([.8,.34,0],[1.12,.36,0],.1,.08,skin));
+  g.add(ell([.16,.1,.1],[1.26,.37,0],skin));
+  g.add(between([-.9,.3,0],[-1.15,.25,0],.06,.015,skin));
+  [1,-1].forEach(s=>{
+    g.add(ell([.13,.07,.2],[.62,.23,.62*s],skin));
+    g.add(ell([.12,.07,.17],[-.55,.22,.55*s],skin));
+    g.add(ell([.025,.025,.025],[1.34,.4,.07*s],dark));
+  });
+  kit.ell('retractor',[.32,.045,.045],[.98,.4,.025],0);
+  kit.ell('pectoralis',[.22,.045,.16],[.45,.33,.2],0);
+  kit.ell('triceps',[.1,.06,.09],[.6,.23,.48],0);
+  kit.ell('biceps',[.08,.055,.08],[.74,.23,.5],0);
+  kit.ell('gastroc',[.09,.06,.1],[-.55,.22,.46],0);
+  kit.ell('caudofem',[.16,.05,.05],[-.95,.3,.04],0);
+  return {g,kit};
+}
+function buildSnake(sp,skin){
+  const g=new THREE.Group(),kit=mkMuscleKit(g);
+  const dark=new THREE.MeshStandardMaterial({color:0x111111});
+  const N=90,pts=[];
+  for(let i=0;i<=N;i++){const t=i/N;pts.push(new THREE.Vector3((t-.5)*4.4,.14,.5*Math.sin(t*Math.PI*3.2)));}
+  const curve=new THREE.CatmullRomCurve3(pts);
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve,220,.13,18,false),skin));
+  const p0=curve.getPoint(0),t0=curve.getTangent(0).negate();
+  const head=ell([.22,.1,.13],[p0.x,p0.y,p0.z],skin);head.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),t0);head.position.add(t0.clone().multiplyScalar(.12));g.add(head);
+  const tail=curve.getPoint(1);g.add(ell([.13,.13,.13],[tail.x,tail.y,tail.z],skin));
+  const eye=ell([.025,.025,.025],[0,0,0],dark);
+  const lateral=(T)=>new THREE.Vector3(-T.z,0,T.x).normalize();
+  const defs=[['semispinalis',.28],['longissimus',.75],['iliocostalis',1.3],['costocut',2.15]];
+  defs.forEach(([id,a])=>[1,-1].forEach(side=>{
+    const P=[];for(let i=5;i<=N-5;i++){const t=i/N,pt=curve.getPoint(t),T=curve.getTangent(t),lat=lateral(T);
+      P.push(new THREE.Vector3(pt.x,pt.y+.128*Math.cos(a),pt.z).addScaledVector(lat,side*.128*Math.sin(a)));}
+    kit.reg(id,new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(P),160,.026,8,false),kit.mat(id)));
+  }));
+  [1,-1].forEach(s=>{const e=eye.clone();e.position.set(p0.x-.28,p0.y+.04,p0.z+.08*s);g.add(e);});
+  return {g,kit};
+}
+
+/* ---------- modul anatomi ---------- */
+inits.anatomi=function(){
+  const v=createViewer($('#anat-view'));
+  const skin=new THREE.MeshStandardMaterial({color:0xb98a5e,transparent:true,opacity:.3,roughness:.8,side:THREE.DoubleSide,depthWrite:false});
+  let cur='sapi',model=null,kit=null,sel=null;
+  fillSelect($('#anat-sp'),Object.entries(SP).map(([k,s])=>[k,s.n]));
+  const info=$('#anat-info');
+  function highlight(){Object.entries(kit.mats).forEach(([id,m])=>{m.emissive.setHex(id===sel?0xffa800:0x000000);m.emissiveIntensity=id===sel?.9:0;});}
+  function intro(){
+    const s=SP[cur];const ms=MUS[s.kind];
+    info.innerHTML=`<h2>${s.n}</h2><div class="lat">${s.lat}</div><p>${s.fact}</p>
+    <h3>Protein otot</h3><p>${s.prot}</p>
+    <h3>Rute injeksi lain</h3><p>${s.routes}</p>
+    <h3>Pilih otot</h3><div class="chips">${Object.entries(ms).map(([id,m])=>`<span class="chip" data-id="${id}">${m.lat.replace(/^Mm?\. /,'')}</span>`).join('')}</div>
+    <p class="note">Klik otot langsung pada model, atau pilih dari daftar. Isi bersifat ringkasan pendidikan (nilai protein berupa perkiraan umum); cocokkan dengan atlas (König &amp; Liebich, Dyce) dan label obat. Ini bukan petunjuk dosis.</p>`;
+    $$('.chip',info).forEach(c=>c.onclick=()=>select(c.dataset.id));
+  }
+  function select(id){
+    sel=id;highlight();const s=SP[cur];const m=MUS[s.kind][id];
+    const inj=(INJ[cur]||{})[id]||{lv:'no',t:'Bukan lokasi injeksi rutin.'};
+    const lab={ok:'Lokasi injeksi IM umum',warn:'Gunakan dengan hati-hati',no:'Bukan lokasi rutin / dihindari'}[inj.lv];
+    info.innerHTML=`<button class="b" id="back">← Semua otot</button>
+    <h2 style="margin-top:10px">${m.idn}</h2><div class="lat">${m.lat}</div>
+    <h3>Lokasi</h3><p>${m.reg}</p><h3>Fungsi</h3><p>${m.fn}</p>
+    <h3>Serat dan protein</h3><p>${m.fib}</p><p><b>${s.n}:</b> ${s.prot}</p>
+    <h3>Injeksi (${s.n})</h3><p><span class="tag ${inj.lv}">${lab}</span></p><p>${inj.t}</p>
+    <p class="note">${s.routes}<br>Volume dan dosis mengikuti label obat dan arahan dokter hewan. Daftar lokasi di sini hanya untuk belajar anatomi.</p>`;
+    $('#back',info).onclick=()=>{sel=null;highlight();intro();};
+  }
+  function load(k){
+    cur=k;if(model)v.scene.remove(model);sel=null;
+    const s=SP[k];skin.color.setHex(s.col);
+    const b={quad:buildQuad,bird:buildBird,turtle:buildTurtle,snake:buildSnake}[s.kind](s,skin);
+    model=b.g;kit=b.kit;v.scene.add(model);v.fit(model);highlight();intro();
+  }
+  enablePicking(v,()=>Object.values(kit.byId).flat(),hs=>{if(hs)select(hs[0].object.userData.muscle);},
+    (hs,e)=>{if(hs){tip(MUS[SP[cur].kind][hs[0].object.userData.muscle].idn,e);v.renderer.domElement.style.cursor='pointer';}else{tip('',e);v.renderer.domElement.style.cursor='grab';}});
+  $('#anat-sp').onchange=e=>load(e.target.value);
+  $('#anat-skin').oninput=e=>{skin.opacity=e.target.value/100;};
+  $('#anat-auto').onchange=e=>{v.controls.autoRotate=e.target.checked;v.controls.autoRotateSpeed=2;};
+  $('#anat-reset').onclick=()=>v.reset();
+  skin.opacity=.3;load('sapi');
+};
+/* ---------- modul mata 3D ---------- */
+const EYE_SP={
+ anjing:{n:'Anjing',lat:'Canis lupus familiaris',pupil:'round',iris:0x7a4a1e,tap:0xc7d65a,tapT:'tapetum cellulosum (sel-sel berkristal)',rect:true,retr:true,
+  note:'Pupil bulat. Penglihatan warna dikromatik. Tapetum lucidum menghasilkan "eyeshine" kehijauan/kuning.'},
+ kucing:{n:'Kucing',lat:'Felis catus',pupil:'slit',iris:0xb8c93a,tap:0xb2d84a,tapT:'tapetum cellulosum',rect:true,retr:true,
+  note:'Pupil celah vertikal dapat menutup sangat rapat; kornea besar dan banyak sel batang membuat sangat peka cahaya redup.'},
+ sapi:{n:'Sapi',lat:'Bos taurus',pupil:'horiz',iris:0x4a2e1a,tap:0x4fb8c4,tapT:'tapetum fibrosum (serat kolagen)',rect:true,retr:true,
+  note:'Pupil horizontal berbentuk persegi panjang; mata di sisi kepala memberi lapang pandang sangat luas (± 330°) dengan area binokular sempit.'},
+ kambing:{n:'Kambing/Domba',lat:'Capra aegagrus hircus / Ovis aries',pupil:'horiz',iris:0xb08a2a,tap:0x5fb5a8,tapT:'tapetum fibrosum',rect:true,retr:true,
+  note:'Pupil horizontal; mata di sisi kepala untuk mengawasi predator di sekeliling.'},
+ kuda:{n:'Kuda',lat:'Equus ferus caballus',pupil:'horiz2',iris:0x4a2e1a,tap:0x4fb8c4,tapT:'tapetum fibrosum',rect:true,retr:true,
+  note:'Mata terbesar di antara mamalia darat. Pupil oval horizontal dengan granula iridica (corpora nigra) di tepi atas dan bawah pupil.'},
+ ayam:{n:'Ayam',lat:'Gallus gallus domesticus',pupil:'round',iris:0xd9822b,tap:null,rect:true,retr:false,pecten:true,
+  note:'Retina tanpa pembuluh darah; nutrisi disuplai oleh pecten oculi. Penglihatan warna tajam (tetrakromatik). Tidak memiliki tapetum.'},
+ kura:{n:'Kura-kura',lat:'Testudines (model generik)',pupil:'round',iris:0x5a4a2a,tap:null,rect:true,retr:true,
+  note:'Pupil bulat dan penglihatan warna yang baik. Umumnya tidak memiliki tapetum.'},
+ ular:{n:'Ular',lat:'Serpentes (model generik)',pupil:'slit',iris:0xc9a227,tap:null,rect:false,retr:false,spec:true,
+  note:'Kelopak menyatu menjadi sisik transparan (spektakel/brille) sehingga mata tak berkedip. Otot luar mata sangat tereduksi; fokus dengan menggeser lensa ke depan.'}
+};
+const EP={
+ sclera:['Sklera','Lapisan luar putih dari kolagen padat; menjaga bentuk bola mata dan tempat melekat otot luar mata.'],
+ cornea:['Kornea','Jendela depan yang bening dan tanpa pembuluh darah; menyumbang bagian terbesar daya bias mata. Mudah terluka (ulkus kornea).'],
+ iris:['Iris dan pupil','Diafragma berpigmen yang mengatur cahaya masuk melalui otot sfingter dan dilator pupil. Bentuk pupil berbeda antarspesies.'],
+ lens:['Lensa','Struktur bening yang menyesuaikan fokus (akomodasi). Pada mamalia lewat otot siliar; pada burung dan reptil lensa dapat berubah bentuk; pada ular lensa digeser.'],
+ ciliary:['Badan siliar','Memproduksi humor akuos dan menggantung lensa lewat serat zonula; otot siliarnya mengatur akomodasi.'],
+ vitreous:['Badan vitreus','Gel bening yang mengisi ruang di belakang lensa; mempertahankan bentuk bola mata dan menopang retina.'],
+ retina:['Retina','Lapisan saraf peka cahaya: sel batang (cahaya redup/gerak) dan sel kerucut (warna). Impuls diteruskan lewat sel ganglion ke N. opticus.'],
+ choroid:['Koroid','Lapisan berpembuluh dan berpigmen di bawah retina; menyuplai nutrisi retina bagian luar dan menyerap cahaya sesat.'],
+ tapetum:['Tapetum lucidum','Lapisan pemantul di atas koroid yang memantulkan cahaya kembali ke retina sehingga meningkatkan penglihatan malam dan menimbulkan "eyeshine". Ada pada anjing, kucing, sapi, kambing, kuda; tidak pada babi, burung, atau umumnya reptil.'],
+ optic:['Nervus opticus (N. II)','Saraf yang membawa impuls retina ke otak. Sebagian besar serabut menyilang di chiasma opticum; proporsi bervariasi menurut spesies (± 65–90% pada mamalia domestik).'],
+ rectus:['Mm. recti (dorsalis, ventralis, medialis, lateralis)','Empat otot lurus yang memutar bola mata ke atas, bawah, dalam, dan luar.'],
+ oblique:['Mm. obliqui (dorsalis dan ventralis)','Dua otot miring yang memutar (rotasi) bola mata di sekeliling sumbunya.'],
+ retractor:['M. retractor bulbi','Menarik bola mata ke dalam rongga orbita dan, secara tidak langsung, mendorong keluar membran niktitans (kelopak ketiga). Ada pada anjing, kucing, ruminansia, dan kuda.'],
+ pecten:['Pecten oculi','Lipatan berpembuluh dengan pigmen di dalam vitreus pada burung; menyuplai nutrisi dan oksigen ke retina yang tak berpembuluh.'],
+ spectacle:['Spektakel (brille)','Sisik bening hasil penyatuan kelopak mata pada ular dan sebagian kadal; melindungi kornea.']
+};
+function superPath(rx,ry,p,n=64){const pts=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2,c=Math.cos(a),s=Math.sin(a);pts.push(new THREE.Vector2(rx*Math.sign(c)*Math.pow(Math.abs(c),2/p),ry*Math.sign(s)*Math.pow(Math.abs(s),2/p)));}return new THREE.Path(pts);}
+
+inits.mata=function(){
+  const v=createViewer($('#eye-view'));
+  const cut=new THREE.Plane(new THREE.Vector3(-1,0,0),2);
+  let cur='anjing',eye=null,parts={},sel=null,muscGroup=[];
+  fillSelect($('#eye-sp'),Object.entries(EYE_SP).map(([k,s])=>[k,s.n]));
+  const info=$('#eye-info');
+  const M=(color,o={})=>new THREE.MeshStandardMaterial(Object.assign({color,roughness:.55,side:THREE.DoubleSide,clippingPlanes:[cut]},o));
+  function meridian(id,col,d,theta,len,w,th,circ){
+    const dd=new THREE.Vector3(d[0],0,d[1]).normalize();
+    const P=new THREE.Vector3(Math.sin(theta)*dd.x,Math.cos(theta),Math.sin(theta)*dd.z);
+    const n=P.clone().normalize();
+    const t=circ?new THREE.Vector3(-dd.z,0,dd.x):new THREE.Vector3(-Math.cos(theta)*dd.x,Math.sin(theta),-Math.cos(theta)*dd.z).normalize();
+    const x=new THREE.Vector3().crossVectors(t,n).normalize();
+    const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,12),col);m.scale.set(w,len,th);
+    m.setRotationFromMatrix(new THREE.Matrix4().makeBasis(x,t,n));m.position.copy(P).multiplyScalar(1.04);
+    m.userData.part=id;return m;
+  }
+  function build(k){
+    const s=EYE_SP[k];const g=new THREE.Group();parts={};muscGroup=[];
+    const reg=(id,m)=>{m.userData.part=id;g.add(m);(parts[id]=parts[id]||[]).push(m);return m;};
+    reg('sclera',new THREE.Mesh(new THREE.SphereGeometry(1,48,32,0,Math.PI*2,.5,Math.PI-.5),M(0xf2efe6,{roughness:.8})));
+    reg('choroid',new THREE.Mesh(new THREE.SphereGeometry(.975,40,28,0,Math.PI*2,.62,Math.PI-.62),M(0x3a2a2a)));
+    reg('retina',new THREE.Mesh(new THREE.SphereGeometry(.95,40,28,0,Math.PI*2,.9,Math.PI-.9),M(0xe08a8a,{transparent:true,opacity:.6})));
+    if(s.tap!=null)reg('tapetum',new THREE.Mesh(new THREE.SphereGeometry(.962,32,16,3*Math.PI/2-.95,1.9,1.9,.95),M(s.tap,{metalness:.35,roughness:.35,emissive:s.tap,emissiveIntensity:.25})));
+    const cor=reg('cornea',new THREE.Mesh(new THREE.SphereGeometry(.65,40,24,0,Math.PI*2,0,.8266),M(0xcfe8ff,{transparent:true,opacity:.28,depthWrite:false})));cor.position.y=.439;
+    if(s.spec){const sp=reg('spectacle',new THREE.Mesh(new THREE.SphereGeometry(.7,40,24,0,Math.PI*2,0,.8266),M(0xe8f4ff,{transparent:true,opacity:.14,depthWrite:false})));sp.position.y=.5;}
+    const shp=new THREE.Shape();shp.absarc(0,0,.52,0,Math.PI*2,false);
+    const holes={round:()=>superPath(.2,.2,2),slit:()=>superPath(.045,.33,2),horiz:()=>superPath(.32,.09,4),horiz2:()=>superPath(.3,.12,2.6)};
+    shp.holes.push(holes[s.pupil]());
+    const iris=reg('iris',new THREE.Mesh(new THREE.ShapeGeometry(shp,32),M(s.iris)));iris.rotation.x=-Math.PI/2;iris.position.y=.78;
+    const lens=reg('lens',new THREE.Mesh(new THREE.SphereGeometry(1,32,20),M(0xbfe0ff,{transparent:true,opacity:.55})));lens.scale.set(.36,.2,.36);lens.position.y=.52;
+    const cil=reg('ciliary',new THREE.Mesh(new THREE.TorusGeometry(.56,.07,12,40),M(0xcaa27a)));cil.rotation.x=Math.PI/2;cil.position.y=.68;
+    reg('vitreous',new THREE.Mesh(new THREE.SphereGeometry(.94,32,24,0,Math.PI*2,1.0,Math.PI-1.0),M(0xaad4ff,{transparent:true,opacity:.16,depthWrite:false})));
+    const on=reg('optic',new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,1.1,20),M(0xf3e3b0)));on.position.set(.25,-1.45,0);
+    if(s.pecten){for(let i=0;i<6;i++){const p=reg('pecten',new THREE.Mesh(new THREE.BoxGeometry(.015,.5,.28),M(0x3b2a22)));p.position.set(.25+(i-2.5)*.07,-.62,0);p.rotation.y=(i-2.5)*.12;}}
+    if(s.rect){
+      const red=M(0xb23a3a);
+      [[0,-1],[0,1],[1,0],[-1,0]].forEach(d=>{const m=meridian('rectus',red,d,1.5,.5,.2,.07,false);g.add(m);(parts.rectus=parts.rectus||[]).push(m);muscGroup.push(m);});
+      [[.7,-.7],[-.7,.7]].forEach(d=>{const m=meridian('oblique',red,d,1.3,.4,.13,.05,true);g.add(m);(parts.oblique=parts.oblique||[]).push(m);muscGroup.push(m);});
+    }
+    if(s.retr){const r=reg('retractor',new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.8,24,1,true),M(0x8e2f2f,{transparent:true,opacity:.55})));r.position.y=-1.35;muscGroup.push(r);}
+    g.rotation.x=Math.PI/2;
+    return g;
+  }
+  function hl(){Object.entries(parts).forEach(([id,ms])=>ms.forEach(m=>{if(m.material.emissive){const keep=(id==='tapetum')?m.material.emissiveIntensity:0;
+    if(id===sel){m.material.emissive.setHex(0xffa800);m.material.emissiveIntensity=.7;}else{m.material.emissive.setHex(id==='tapetum'?EYE_SP[cur].tap:0);m.material.emissiveIntensity=id==='tapetum'?.25:0;}}}));}
+  function intro(){
+    const s=EYE_SP[cur];
+    const ids=Object.keys(parts);
+    info.innerHTML=`<h2>Mata ${s.n}</h2><div class="lat">${s.lat}</div><p>${s.note}</p>
+    <h3>Bentuk pupil</h3><p>${{round:'Bulat',slit:'Celah vertikal',horiz:'Persegi panjang horizontal',horiz2:'Oval horizontal'}[s.pupil]}</p>
+    <h3>Tapetum lucidum</h3><p>${s.tap!=null?'Ada: '+s.tapT:'Tidak ada (umumnya)'}</p>
+    <h3>Bagian mata</h3><div class="chips">${ids.map(id=>`<span class="chip" data-id="${id}">${EP[id][0]}</span>`).join('')}</div>
+    <p class="note">Model skematis hasil kode; susunan dan proporsi disederhanakan. Cocokkan dengan atlas oftalmologi veteriner. Posisi otot luar mata dibuat perkiraan.</p>`;
+    $$('.chip',info).forEach(c=>c.onclick=()=>select(c.dataset.id));
+  }
+  function select(id){
+    sel=id;hl();const e=EP[id];
+    info.innerHTML=`<button class="b" id="eback">← Semua bagian</button><h2 style="margin-top:10px">${e[0]}</h2><p>${e[1]}</p>${id==='iris'?`<p><b>Pupil ${EYE_SP[cur].n}:</b> ${{round:'bulat',slit:'celah vertikal',horiz:'persegi panjang horizontal',horiz2:'oval horizontal'}[EYE_SP[cur].pupil]}.</p>`:''}${id==='tapetum'?`<p><b>Tipe:</b> ${EYE_SP[cur].tapT}</p>`:''}`;
+    $('#eback',info).onclick=()=>{sel=null;hl();intro();};
+  }
+  function load(k){
+    cur=k;if(eye)v.scene.remove(eye);sel=null;eye=build(k);v.scene.add(eye);
+    v.fit(eye,new THREE.Vector3(.6,.35,1.4));hl();intro();
+    eye.traverse(o=>{if(o.userData.part&&muscGroup.includes(o))o.visible=$('#eye-musc').checked;});
+  }
+  const filter=h=>cut.distanceToPoint(h.point)>=0;
+  function pick(hs){
+    if(!hs)return null;let h=hs[0];
+    if(h.object.userData.part==='retina'){const t=hs.find(x=>x.object.userData.part==='tapetum'&&x.distance<h.distance+.07);if(t)h=t;}
+    return h.object.userData.part;
+  }
+  enablePicking(v,()=>Object.values(parts).flat().filter(m=>m.visible),hs=>{const p=pick(hs);if(p)select(p);},
+    (hs,e)=>{const p=pick(hs);tip(p?EP[p][0]:'',e);},filter);
+  $('#eye-sp').onchange=e=>load(e.target.value);
+  $('#eye-cut').oninput=e=>{cut.constant=2-(e.target.value/100)*2;};
+  $('#eye-musc').onchange=e=>muscGroup.forEach(m=>{m.visible=e.target.checked;});
+  $('#eye-auto').onchange=e=>{v.controls.autoRotate=e.target.checked;v.controls.autoRotateSpeed=2;};
+  load('anjing');
+};
+/* ---------- modul mikroskop parasit ---------- */
+const PARA={
+ toxocara:{n:'Telur Toxocara canis',size:'75–90 µm',host:'Anjing (juga rubah); larva dapat menginfeksi manusia',hitR:50,
+  look:'Bulat-subglobular, cangkang tebal dengan permukaan berlubang halus (pitted), isi satu massa sel gelap.',
+  dx:'Flotasi feses. Telur belum berlarva saat keluar; menjadi infektif setelah berkembang di lingkungan.',note:'Zoonosis: visceral larva migrans.'},
+ fasciola:{n:'Telur Fasciola hepatica',size:'130–150 × 63–90 µm',host:'Sapi, kambing, domba (cacing hati)',hitR:80,
+  look:'Oval besar, kuning keemasan, dengan operkulum (tutup kecil) di salah satu kutub, isi sel-sel granular.',
+  dx:'Sedimentasi feses (telur berat, tidak mudah mengapung pada flotasi biasa).',note:'Siput Lymnaea sebagai inang antara; zoonosis.'},
+ eimeria:{n:'Oosista Eimeria',size:'15–40 µm menurut spesies',host:'Ayam (mis. E. tenella), sapi (mis. E. bovis), kelinci, dll',hitR:24,
+  look:'Elips berdinding ganda. Belum bersporulasi: satu massa sporon. Bersporulasi: 4 sporokista, masing-masing 2 sporozoit.',
+  dx:'Flotasi feses; identifikasi spesies dari ukuran, bentuk, mikropil.',note:'Penyebab koksidiosis (diare berdarah pada anak sapi dan ayam, mis. E. tenella di sekum).'},
+ trypanosoma:{n:'Trypanosoma evansi',size:'± 15–34 µm',host:'Kuda (sangat fatal), sapi, kerbau, anjing, unta',hitR:24,
+  look:'Tubuh memanjang ramping, membran bergelombang, flagel bebas di ujung depan, nukleus oval di tengah, kinetoplas kecil dekat ujung belakang.',
+  dx:'Apus darah Giemsa, mikrohematokrit, uji serologi, PCR.',note:'Penyebab surra; ditularkan secara mekanik oleh lalat penghisap darah (mis. Tabanus, Stomoxys).'},
+ babesia:{n:'Babesia bigemina',size:'± 4–5 µm (di dalam eritrosit)',host:'Sapi; vektor kutu Rhipicephalus (Boophilus) microplus',hitR:9,
+  look:'Berpasangan, bentuk pir (piriform) dengan ujung runcing saling bertemu membentuk sudut lancip, di dalam eritrosit.',
+  dx:'Apus darah tipis Giemsa.',note:'Menyebabkan hemolisis, demam, hemoglobinuria ("redwater").'},
+ giardia:{n:'Trofozoit Giardia duodenalis',size:'12–15 × 5–9 µm',host:'Anjing, kucing, hewan lain; berpotensi zoonosis',hitR:14,
+  look:'Seperti pir/"wajah": dua inti di anterior, cakram penghisap, badan median, 4 pasang flagel.',
+  dx:'Sediaan basah feses segar, flotasi ZnSO4 (kista), antigen ELISA/PCR.',note:'Dapat menyebabkan diare dan malabsorpsi.'},
+ microfilaria:{n:'Mikrofilaria Dirofilaria immitis',size:'± 290–330 × 5–7 µm',host:'Anjing (cacing jantung); vektor nyamuk',hitR:90,
+  look:'Panjang ramping tanpa selubung (unsheathed), kepala meruncing, ekor lurus, inti berderet di sepanjang tubuh.',
+  dx:'Uji Knott/filtrasi, uji antigen; cacing dewasa di arteri pulmonalis dan jantung kanan.',note:'Pastikan dibedakan dari Acanthocheilonema reconditum.'},
+ sarcoptes:{n:'Tungau Sarcoptes scabiei',size:'± 200–450 µm',host:'Anjing (juga hewan lain dan manusia)',hitR:130,
+  look:'Bulat-oval, tungkai pendek, duri dan lipatan dorsal konsentris, bagian mulut (gnathosoma) menonjol di depan.',
+  dx:'Kerokan kulit dalam hingga berdarah ringan, periksa dengan KOH atau minyak mineral.',note:'Menyebabkan gatal hebat dan kerak (scabies); pada manusia dapat sementara.'}
+};
+const SLIDES={
+ anjing:{t:'Flotasi feses anjing',bg:'feces',stain:'Flotasi larutan gula/ZnSO4, tanpa pewarna',list:[['toxocara',9]]},
+ ruminan:{t:'Sedimentasi feses sapi/domba',bg:'feces',stain:'Sedimentasi, tanpa pewarna',list:[['fasciola',7],['eimeria',8]]},
+ ayam:{t:'Feses ayam (koksidiosis)',bg:'feces',stain:'Flotasi, tanpa pewarna',list:[['eimeria',18]]},
+ giardia:{t:'Feses diare anjing/kucing',bg:'feces',stain:'Sediaan basah (+ larutan iodium)',list:[['giardia',14]]},
+ tryp:{t:'Apus darah (surra)',bg:'blood',stain:'Giemsa',list:[['trypanosoma',6]]},
+ babesia:{t:'Apus darah sapi (babesiosis)',bg:'blood',stain:'Giemsa',list:[['babesia',26]]},
+ dirofil:{t:'Darah anjing (dirofilariasis)',bg:'blood',stain:'Giemsa/Knott',list:[['microfilaria',5]]},
+ skin:{t:'Kerokan kulit anjing',bg:'skin',stain:'KOH 10%',list:[['sarcoptes',5]]}
+};
+const WORLD=3000,PPU={4:.14,10:.355,40:1.42,100:3.55},FT={4:25,10:40,40:55,100:70};
+
+function seg(c,pts,w){for(let i=1;i<pts.length;i++){c.lineWidth=Math.max(.3,w(i/(pts.length-1)));c.beginPath();c.moveTo(pts[i-1][0],pts[i-1][1]);c.lineTo(pts[i][0],pts[i][1]);c.stroke();}}
+const DRAW={
+ toxocara(c,t){
+  c.fillStyle='#d9c27a';c.strokeStyle='#8a6d2a';c.lineWidth=4;c.beginPath();c.ellipse(0,0,41,39,0,0,7);c.fill();c.stroke();
+  c.fillStyle='rgba(110,80,25,.55)';for(let i=0;i<34;i++){const a=t.r[i]*6.28,rr=33+t.r[i+34]*5;c.beginPath();c.arc(Math.cos(a)*rr,Math.sin(a)*rr,1.3,0,7);c.fill();}
+  c.fillStyle='#8c6b2e';c.beginPath();c.arc(0,0,27,0,7);c.fill();
+  c.fillStyle='rgba(210,180,100,.6)';for(let i=0;i<24;i++){const a=t.r[i+8]*6.28,rr=t.r[i+30]*21;c.beginPath();c.arc(Math.cos(a)*rr,Math.sin(a)*rr,2.2,0,7);c.fill();}
+ },
+ fasciola(c,t){
+  c.fillStyle='#c9a545';c.strokeStyle='#7a5c14';c.lineWidth=3.5;c.beginPath();c.ellipse(0,0,70,42,0,0,7);c.fill();c.stroke();
+  c.fillStyle='rgba(235,210,130,.7)';for(let i=0;i<46;i++){const a=t.r[i]*6.28,rr=Math.sqrt(t.r[i+46])*.88;c.beginPath();c.arc(Math.cos(a)*rr*60,Math.sin(a)*rr*34,3.4+t.r[i]*2.5,0,7);c.fill();}
+  c.strokeStyle='#5a4210';c.lineWidth=4;c.beginPath();c.ellipse(0,0,70,42,0,-.34,.34);c.stroke();
+  c.beginPath();c.moveTo(63,-15);c.lineTo(63,15);c.stroke();
+ },
+ eimeria(c,t){
+  c.fillStyle='#ebe6d2';c.strokeStyle='#6a6a62';c.lineWidth=1.3;c.beginPath();c.ellipse(0,0,17,12.5,0,0,7);c.fill();c.stroke();
+  c.lineWidth=.6;c.beginPath();c.ellipse(0,0,15.4,11,0,0,7);c.stroke();
+  c.fillStyle='#fff';c.fillRect(-18.2,-2.2,2.6,4.4);
+  if(!t.spor){c.fillStyle='#9ea27e';c.beginPath();c.arc(0,0,7.3,0,7);c.fill();c.fillStyle='rgba(60,70,40,.5)';for(let i=0;i<8;i++){c.beginPath();c.arc((t.r[i]-.5)*9,(t.r[i+8]-.5)*9,.8,0,7);c.fill();}}
+  else{[[-5.5,-4,.5],[5.5,-4,-.5],[-5.5,4,-.5],[5.5,4,.5]].forEach(([x,y,a])=>{c.fillStyle='#b8c49a';c.strokeStyle='#5e6a45';c.lineWidth=.5;c.beginPath();c.ellipse(x,y,5.2,3.1,a,0,7);c.fill();c.stroke();c.fillStyle='#6b7a4a';c.beginPath();c.arc(x-1.3,y,.9,0,7);c.arc(x+1.3,y,.9,0,7);c.fill();});c.fillStyle='#7d7458';c.beginPath();c.arc(0,0,1.4,0,7);c.fill();}
+ },
+ trypanosoma(c,t){
+  const P=[];for(let i=0;i<=30;i++){const s=i/30;P.push([-14+28*s,2.5*Math.sin(s*Math.PI*1.4)]);}
+  const wd=s=>1.1+1.7*Math.pow(Math.sin(Math.PI*s),.6);
+  c.fillStyle='#7184bd';c.strokeStyle='#3b4a8a';c.lineWidth=.5;c.beginPath();
+  P.forEach((p,i)=>{const w=wd(i/30);i?c.lineTo(p[0],p[1]+w):c.moveTo(p[0],p[1]+w);});
+  for(let i=30;i>=0;i--){c.lineTo(P[i][0],P[i][1]-wd(i/30));}c.closePath();c.fill();c.stroke();
+  c.strokeStyle='#a3adda';c.lineWidth=.6;c.beginPath();P.forEach((p,i)=>{const y=p[1]+wd(i/30)+1.1*Math.sin(i*.9);i?c.lineTo(p[0],y):c.moveTo(p[0],y);});c.stroke();
+  c.strokeStyle='#3b4a8a';c.lineWidth=.6;c.beginPath();c.moveTo(14,P[30][1]);c.quadraticCurveTo(18,P[30][1]-3,21,P[30][1]-1);c.stroke();
+  c.fillStyle='#55287c';c.beginPath();c.ellipse(0,P[15][1],2.6,1.6,0,0,7);c.fill();
+  c.fillStyle='#220a30';c.beginPath();c.arc(-10,P[5][1],.8,0,7);c.fill();
+ },
+ babesia(c,t){
+  c.fillStyle='#e6a0a6';c.strokeStyle='#c27a82';c.lineWidth=.35;c.beginPath();c.arc(0,0,3.8,0,7);c.fill();c.stroke();
+  [[-1,1],[1,-1]].forEach(([s,k])=>{c.save();c.rotate(s*.62);c.translate(k*-1.0,0);c.fillStyle='#6f86c4';c.strokeStyle='#3b4a8a';c.lineWidth=.2;c.beginPath();c.ellipse(1.1*s*0,1.2,.8,1.7,0,0,7);c.fill();c.stroke();c.fillStyle='#8d1c4a';c.beginPath();c.arc(0,2.2,.3,0,7);c.fill();c.restore();});
+ },
+ giardia(c,t){
+  c.fillStyle='#c8d8b8';c.strokeStyle='#4b6b3a';c.lineWidth=.55;c.beginPath();c.ellipse(-1,0,7,4.6,0,0,7);c.fill();c.stroke();
+  c.beginPath();c.moveTo(5,-2.6);c.lineTo(11.5,0);c.lineTo(5,2.6);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#3a4f6a';[-1.4,1.4].forEach(y=>{c.beginPath();c.ellipse(-3.5,y,1.4,1.2,0,0,7);c.fill();});
+  c.fillStyle='#cfe0f0';[-1.4,1.4].forEach(y=>{c.beginPath();c.arc(-3.5,y,.4,0,7);c.fill();});
+  c.strokeStyle='#2a3a2a';c.lineWidth=.7;c.beginPath();c.moveTo(1.5,-1.6);c.lineTo(3.2,1.6);c.moveTo(3,-1.6);c.lineTo(4.5,1.6);c.stroke();
+  c.strokeStyle='#4b6b3a';c.lineWidth=.3;for(let i=0;i<4;i++){c.beginPath();c.moveTo(-3+i*2.5,4.4);c.quadraticCurveTo(-2+i*2.5,7,-3.5+i*2.8,9);c.stroke();}
+  c.beginPath();c.ellipse(-3.5,0,4,3.2,0,0,7);c.strokeStyle='rgba(60,90,60,.5)';c.stroke();
+ },
+ microfilaria(c,t){
+  const P=[];for(let i=0;i<=70;i++){const s=i/70;P.push([-150+300*s,17*Math.sin(s*Math.PI*3.3+t.r[0]*6)]);}
+  c.lineCap='round';c.strokeStyle='#9d85b8';seg(c,P,s=>1+5.5*Math.min(1,s/.06,(1-s)/.16));
+  c.fillStyle='#4a2a6a';for(let i=3;i<60;i++){const p=P[i];c.beginPath();c.arc(p[0],p[1]+(t.r[i]-.5)*1.6,.95,0,7);c.fill();}
+ },
+ sarcoptes(c,t){
+  c.fillStyle='#e8dcc0';c.strokeStyle='#8a7a50';c.lineWidth=4;
+  [[-80,-95,-.6],[-30,-103,-.3],[38,-100,.15],[95,-72,.5],[-80,95,.6],[-30,103,.3],[38,100,-.15],[95,72,-.5]].forEach(([x,y,a],i)=>{
+    c.save();c.translate(x,y);c.rotate(a+(y>0?Math.PI:0)+Math.PI/2*0);c.beginPath();c.roundRect(-9,-4,18,(i%4<2?44:30)*(y>0?1:1),8);c.fillStyle='#d9c9a5';c.fill();c.stroke();c.restore();});
+  c.fillStyle='#d9c9a5';c.beginPath();c.ellipse(-138,0,32,38,0,0,7);c.fill();c.stroke();
+  c.fillStyle='#e8dcc0';c.beginPath();c.ellipse(0,0,130,105,0,0,7);c.fill();c.stroke();
+  c.strokeStyle='rgba(150,130,80,.7)';c.lineWidth=2;[.85,.68,.5].forEach(k=>{c.beginPath();c.ellipse(0,0,130*k,105*k,0,-2.2,2.2);c.stroke();});
+  c.fillStyle='#a8966a';for(let i=0;i<9;i++){const a=2.2+i*.2;c.beginPath();c.moveTo(Math.cos(a)*122,Math.sin(a)*98);c.lineTo(Math.cos(a)*138,Math.sin(a)*112-3);c.lineTo(Math.cos(a+.07)*122,Math.sin(a+.07)*98);c.fill();}
+ }
+};
+function mkSlide(key){
+  const S=SLIDES[key];const r=rng([...key].reduce((a,ch)=>a*31+ch.charCodeAt(0),7));
+  const bg=[],spec=[];
+  if(S.bg==='feces'){
+    for(let i=0;i<340;i++){const n=6+Math.floor(r()*4),R=5+r()*28,x=r()*WORLD,y=r()*WORLD,pts=[];for(let j=0;j<n;j++){const a=j/n*6.28,rr=R*(.6+r()*.5);pts.push([Math.cos(a)*rr,Math.sin(a)*rr]);}
+      const hue=r()<.6?`rgba(${110+r()*50|0},${85+r()*40|0},${40+r()*30|0},${.35+r()*.5})`:`rgba(${90+r()*30|0},${120+r()*40|0},${50+r()*30|0},${.3+r()*.4})`;bg.push({k:'blob',x,y,pts,col:hue});}
+    for(let i=0;i<16;i++)bg.push({k:'bubble',x:r()*WORLD,y:r()*WORLD,R:22+r()*50});
+  }else if(S.bg==='blood'){
+    for(let i=0;i<30000;i++)bg.push({k:'rbc',x:r()*WORLD,y:r()*WORLD});
+    for(let i=0;i<14;i++)bg.push({k:'wbc',x:r()*WORLD,y:r()*WORLD,rot:r()*6});
+  }else{
+    for(let i=0;i<300;i++){const R=8+r()*35,pts=[];for(let j=0;j<7;j++){const a=j/7*6.28;pts.push([Math.cos(a)*R*(.6+r()*.6),Math.sin(a)*R*(.4+r()*.5)]);}bg.push({k:'blob',x:r()*WORLD,y:r()*WORLD,pts,col:`rgba(${215+r()*20|0},${200+r()*20|0},${170+r()*20|0},${.35+r()*.4})`});}
+    for(let i=0;i<40;i++)bg.push({k:'hair',x:r()*WORLD,y:r()*WORLD,a:r()*3,len:150+r()*250,bend:(r()-.5)*80});
+  }
+  let first=true;
+  S.list.forEach(([type,n])=>{for(let i=0;i<n;i++){
+    const x=first?1000+(r()-.5)*160:150+r()*(WORLD-300),y=first?1000+(r()-.5)*160:150+r()*(WORLD-300);first=false;
+    spec.push({type,x,y,rot:r()*6.28,spor:r()<.5,r:Array.from({length:100},r)});}});
+  return {bg,spec};
+}
+inits.mikro=function(){
+  const cv=$('#mic-cv'),c=cv.getContext('2d'),info=$('#mic-info');
+  fillSelect($('#mic-slide'),Object.entries(SLIDES).map(([k,s])=>[k,s.t]));
+  let key='anjing',slide=mkSlide(key),obj=10,cx=1000,cy=1000,sel=null,labels=false,focus=10;
+  $('#mic-obj').innerHTML=[4,10,40,100].map(o=>`<button class="b${o===obj?' on':''}" data-o="${o}">${o}×</button>`).join(' ');
+  function rbc(x,y,p){c.fillStyle=p?'#dd9aa0':'#dd9aa0';c.beginPath();c.arc(x,y,3.7,0,7);c.fill();if(PPU[obj]>.8){c.fillStyle='#eab8bc';c.beginPath();c.arc(x,y,1.6,0,7);c.fill();}}
+  function render(){
+    const W=cv.width,pp=PPU[obj],S=SLIDES[key];
+    c.setTransform(1,0,0,1,0,0);
+    c.fillStyle={feces:'#d9d5a6',blood:'#f3dcdc',skin:'#ebe4d3'}[S.bg];c.fillRect(0,0,W,W);
+    c.save();c.translate(W/2,W/2);c.scale(pp,pp);c.translate(-cx,-cy);
+    const vr=W/2/pp*1.25;const vis=(o,m=0)=>Math.abs(o.x-cx)<vr+m&&Math.abs(o.y-cy)<vr+m;
+    slide.bg.forEach(o=>{
+      if(!vis(o,150))return;
+      if(o.k==='rbc'){if(pp>.3)rbc(o.x,o.y);}
+      else if(o.k==='wbc'){c.save();c.translate(o.x,o.y);c.rotate(o.rot);c.fillStyle='#7a63a8';[[-3,0],[3,-2],[3,3]].forEach(([x,y])=>{c.beginPath();c.arc(x,y,3.6,0,7);c.fill();});c.restore();}
+      else if(o.k==='blob'){c.fillStyle=o.col;c.beginPath();o.pts.forEach((p,i)=>i?c.lineTo(o.x+p[0],o.y+p[1]):c.moveTo(o.x+p[0],o.y+p[1]));c.closePath();c.fill();}
+      else if(o.k==='bubble'){c.strokeStyle='rgba(60,60,60,.7)';c.lineWidth=3;c.fillStyle='rgba(255,255,240,.45)';c.beginPath();c.arc(o.x,o.y,o.R,0,7);c.fill();c.stroke();c.fillStyle='rgba(255,255,255,.9)';c.beginPath();c.arc(o.x-o.R*.35,o.y-o.R*.35,o.R*.18,0,7);c.fill();}
+      else if(o.k==='hair'){c.strokeStyle='rgba(110,80,50,.7)';c.lineWidth=5;c.beginPath();c.moveTo(o.x,o.y);c.quadraticCurveTo(o.x+Math.cos(o.a)*o.len/2+o.bend,o.y+Math.sin(o.a)*o.len/2,o.x+Math.cos(o.a)*o.len,o.y+Math.sin(o.a)*o.len);c.stroke();}
+    });
+    slide.spec.forEach(s=>{
+      if(!vis(s,200))return;
+      c.save();c.translate(s.x,s.y);c.rotate(s.rot);DRAW[s.type](c,s);c.restore();
+      if(s===sel){c.strokeStyle='#4cc9a6';c.lineWidth=3/pp;c.beginPath();c.arc(s.x,s.y,PARA[s.type].hitR+6/pp,0,7);c.stroke();}
+    });
+    c.restore();
+    if(labels){c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.font='13px sans-serif';slide.spec.forEach(s=>{const x=(s.x-cx)*pp+W/2,y=(s.y-cy)*pp+W/2-PARA[s.type].hitR*pp-6;if(x>0&&x<W&&y>0&&y<W){const t=PARA[s.type].n;c.strokeText(t,x-30,y);c.fillText(t,x-30,y);}});}
+    const bar={4:500,10:200,40:50,100:20}[obj];c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.fillRect(24,W-34,bar*pp,5);c.font='13px sans-serif';c.strokeText(bar+' µm',24,W-42);c.fillText(bar+' µm',24,W-42);
+    const d=Math.max(0,Math.abs(focus-FT[obj])-2),b=d*(.12+obj*.012);cv.style.filter=`blur(${b.toFixed(1)}px)`;
+  }
+  function intro(){
+    const S=SLIDES[key];
+    info.innerHTML=`<h2>${S.t}</h2><p class="muted">Pewarnaan/persiapan: ${S.stain}</p>
+    <h3>Cara pakai</h3><p>1) Mulai dari lensa 4×/10×, fokuskan dengan slider. 2) Seret preparat untuk mencari objek. 3) Naikkan perbesaran ke 40×/100× untuk melihat detail dan fokus ulang. 4) Klik objek untuk identifikasi.</p>
+    <h3>Parasit pada preparat ini</h3><div class="chips">${[...new Set(S.list.map(l=>l[0]))].map(k=>`<span class="chip" data-k="${k}">${PARA[k].n}</span>`).join('')}</div>
+    <p class="note">Gambar dibuat secara skematis dengan kode; ukuran relatif mengikuti data literatur. Bukan pengganti foto preparat asli. Pengobatan sesuai resep dokter hewan.</p>`;
+    $$('.chip',info).forEach(ch=>ch.onclick=()=>{const t=slide.spec.find(s=>s.type===ch.dataset.k);if(t){sel=t;show(t);cx=t.x;cy=t.y;render();}});
+  }
+  function show(s){
+    const p=PARA[s.type];
+    info.innerHTML=`<button class="b" id="mback">← Preparat</button><h2 style="margin-top:10px">${p.n}</h2>
+    <h3>Ukuran</h3><p>${p.size}</p><h3>Inang</h3><p>${p.host}</p><h3>Ciri khas</h3><p>${p.look}</p><h3>Diagnosis</h3><p>${p.dx}</p><p class="note">${p.note}</p>`;
+    $('#mback',info).onclick=()=>{sel=null;intro();render();};
+  }
+  function setSlide(k){key=k;slide=mkSlide(k);cx=1000;cy=1000;sel=null;intro();render();}
+  $('#mic-slide').onchange=e=>setSlide(e.target.value);
+  $('#mic-obj').onclick=e=>{const o=e.target.dataset.o;if(!o)return;obj=+o;$$('#mic-obj button').forEach(b=>b.classList.toggle('on',b.dataset.o===o));render();};
+  $('#mic-focus').oninput=e=>{focus=+e.target.value;render();};
+  $('#mic-auto').onclick=()=>{focus=FT[obj];$('#mic-focus').value=focus;render();};
+  $('#mic-hint').onclick=()=>{let best=null,bd=1e18;slide.spec.forEach(s=>{const d=(s.x-cx)**2+(s.y-cy)**2;if(d>2500&&d<bd){bd=d;best=s;}});if(best){cx=best.x+(Math.random()-.5)*60;cy=best.y+(Math.random()-.5)*60;render();}};
+  $('#mic-lbl').onchange=e=>{labels=e.target.checked;render();};
+  let drag=null;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cx,cy,moved:false};});
+  cv.addEventListener('pointermove',e=>{if(!drag)return;const r=cv.getBoundingClientRect(),k=cv.width/r.width,dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(dx*dx+dy*dy>16)drag.moved=true;
+    cx=Math.min(WORLD,Math.max(0,drag.cx-dx*k/PPU[obj]));cy=Math.min(WORLD,Math.max(0,drag.cy-dy*k/PPU[obj]));render();});
+  cv.addEventListener('pointerup',e=>{
+    if(drag&&!drag.moved){const r=cv.getBoundingClientRect(),k=cv.width/r.width,pp=PPU[obj];
+      const wx=cx+((e.clientX-r.left)*k-cv.width/2)/pp,wy=cy+((e.clientY-r.top)*k-cv.width/2)/pp;
+      let best=null,bd=1e18;slide.spec.forEach(s=>{const d=Math.hypot(s.x-wx,s.y-wy);if(d<PARA[s.type].hitR+8/pp&&d<bd){bd=d;best=s;}});
+      if(best){sel=best;show(best);}else{
+        const bub=slide.bg.find(o=>o.k==='bubble'&&Math.hypot(o.x-wx,o.y-wy)<o.R);
+        sel=null;if(bub)info.innerHTML=`<button class="b" id="mback">← Preparat</button><h2 style="margin-top:10px">Gelembung udara (artefak)</h2><p>Lingkaran dengan tepi tebal gelap dan pantulan terang. Bukan parasit; sering membingungkan pemula.</p>`;
+        if(bub)$('#mback',info).onclick=()=>{intro();};
+      }
+      render();}
+    drag=null;});
+  intro();render();
+};
+/* ---------- util kanvas datar ---------- */
+function canvasSpots(cv,getSpots,onHit,onMove){
+  const at=e=>{const r=cv.getBoundingClientRect(),k=cv.width/r.width,x=(e.clientX-r.left)*k,y=(e.clientY-r.top)*k;let best=null,bd=1e9;
+    getSpots().forEach(s=>{const d=Math.hypot(s[0]-x,s[1]-y);if(d<=s[2]&&d<bd){bd=d;best=s;}});return best;};
+  cv.addEventListener('click',e=>{const s=at(e);if(s)onHit(s);});
+  cv.addEventListener('pointermove',e=>{const s=at(e);cv.style.cursor=s?'pointer':'default';tip(s?s[3]:'',e);});
+  cv.addEventListener('pointerleave',e=>tip('',{clientX:0,clientY:0}));
+}
+function disc(c,x,y,r,fill,stroke,lw){c.beginPath();c.arc(x,y,r,0,7);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw||1;c.stroke();}}
+function oval(c,x,y,rx,ry,rot,fill,stroke,lw){c.beginPath();c.ellipse(x,y,rx,ry,rot||0,0,7);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw||1;c.stroke();}}
+
+/* ---------- histopatologi ---------- */
+const HT={
+hati:{n:'Hati',
+ normal:{
+  draw(c){const r=rng(11),cx=350,cy=260;c.fillStyle='#f4dbe6';c.fillRect(0,0,700,520);
+   for(let a=0;a<6.28;a+=.2)for(let d=44;d<205;d+=17){const x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;oval(c,x,y,9,8,a,'#e6a6c0','#c77a9a',1);disc(c,x,y,3.2,'#5a3b86');}
+   disc(c,cx,cy,30,'#faf0f4','#9a6aa8',3);
+   for(let k=0;k<6;k++){const a=Math.PI/6+k*Math.PI/3,x=cx+Math.cos(a)*228,y=cy+Math.sin(a)*228;disc(c,x,y,24,'#f7e6ee');disc(c,x-8,y+4,12,'#faf0f4','#a46688',2);disc(c,x+9,y-6,6,'#f3b4c8','#b0305a',3.5);
+    for(let j=0;j<6;j++)disc(c,x+11+Math.cos(j)*6,y+9+Math.sin(j)*6,1.6,'#5a3b86');disc(c,x+11,y+9,5.5,null,'#9a6aa8',1.5);}
+  },
+  spots:[[350,260,30,'Vena sentralis','Pusat lobulus hati; darah sinusoid mengalir ke sini lalu ke vena hepatika.'],
+   [350+Math.cos(1)*110,260+Math.sin(1)*110,11,'Hepatosit','Sel parenkim hati berinti bulat di tengah; tersusun sebagai tali (kord) radial. Metabolisme, sintesis protein, empedu, detoksifikasi.'],
+   [350+Math.cos(.1)*110,260+Math.sin(.1)*110,7,'Sinusoid hati','Kapiler berpori di antara kord hepatosit; dilapisi sel endotel dan sel Kupffer (makrofag).'],
+   [350+Math.cos(Math.PI/6)*228,260+Math.sin(Math.PI/6)*228,28,'Trias portal','Cabang vena porta (besar), arteriola hepatika (dinding tebal), dan duktus empedu (epitel kuboid) dalam jaringan ikat.']]},
+ patologi:{label:'Lipidosis hepatik (perlemakan hati)',
+  draw(c){const r=rng(12),cx=350,cy=260;c.fillStyle='#f4dbe6';c.fillRect(0,0,700,520);
+   for(let a=0;a<6.28;a+=.2)for(let d=44;d<205;d+=17){const x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;oval(c,x,y,9.5,8.5,a,'#efc9d9','#c77a9a',1);
+    disc(c,x+(r()-.5)*3,y+(r()-.5)*3,4.2+r()*1.5,'#fdf9fb','#d9a0b8',.8);if(r()<.7)disc(c,x+(r()-.5)*7,y+(r()-.5)*7,2.8,'#fdf9fb','#d9a0b8',.6);disc(c,x+(r()<.5?-6:6),y+(r()-.5)*6,2.2,'#4a2b78');}
+   disc(c,cx,cy,30,'#faf0f4','#9a6aa8',3);
+   for(let k=0;k<6;k++){const a=Math.PI/6+k*Math.PI/3,x=cx+Math.cos(a)*228,y=cy+Math.sin(a)*228;disc(c,x,y,24,'#f7e6ee');disc(c,x-8,y+4,12,'#faf0f4','#a46688',2);disc(c,x+9,y-6,6,'#f3b4c8','#b0305a',3.5);}
+  },
+  spots:[[350,260,30,'Vena sentralis','Struktur lobulus masih terlihat.'],
+   [350+Math.cos(1)*110,260+Math.sin(1)*110,11,'Hepatosit dengan vakuola lemak','Sitoplasma berisi banyak vakuola bulat bening (lemak larut saat proses histologi). Inti terdorong ke tepi. Penyebab: ketosis, kelaparan (terutama kucing), toksin, penyakit metabolik.'],
+   [350+Math.cos(Math.PI/6)*228,260+Math.sin(Math.PI/6)*228,28,'Trias portal','Relatif normal pada perlemakan ringan.']]}},
+usus:{n:'Usus halus',
+ normal:{
+  draw(c){c.fillStyle='#f9f0f3';c.fillRect(0,0,700,520);c.fillStyle='#f3cddd';c.fillRect(0,200,700,62);
+   for(let i=0;i<5;i++){const x=80+i*135;c.fillStyle='#f8dde8';c.strokeStyle='#a0507a';c.lineWidth=7;c.beginPath();c.roundRect(x-38,50,76,152,38);c.fill();c.stroke();
+    c.fillStyle='#fff';c.strokeStyle='#d8a0bc';c.lineWidth=1;c.beginPath();c.roundRect(x-5,80,10,100,5);c.fill();c.stroke();
+    for(let y=70;y<190;y+=12){oval(c,x-38,y,3,5,0,'#4a2b78');oval(c,x+38,y+6,3,5,0,'#4a2b78');}
+    [[x-38,95],[x+38,125],[x-38,150]].forEach(p=>oval(c,p[0],p[1],5,7,0,'#fff','#c58aa8',1));}
+   for(let i=0;i<14;i++){const x=42+i*47;c.fillStyle='#fbeaf1';c.strokeStyle='#a0507a';c.lineWidth=3;c.beginPath();c.roundRect(x-7,205,14,54,6);c.fill();c.stroke();disc(c,x,225,2,'#4a2b78');}
+   c.fillStyle='#e07a9f';c.fillRect(0,262,700,12);c.fillStyle='#f7e1ea';c.fillRect(0,274,700,66);c.strokeStyle='#e8bfd0';c.lineWidth=1.5;for(let i=0;i<12;i++){c.beginPath();c.moveTo(0,285+i*4.5);c.bezierCurveTo(200,275+i*4,450,300+i*4,700,285+i*4);c.stroke();}
+   c.fillStyle='#e59ab8';c.fillRect(0,340,700,52);c.fillStyle='#d98aa8';c.fillRect(0,392,700,58);for(let x=20;x<700;x+=36)oval(c,x,421,13,20,0,'#c87898','#a85a7c',1);
+   for(let x=10;x<700;x+=28)disc(c,x,366,2,'#4a2b78');
+  },
+  spots:[[215,120,30,'Vilus','Tonjolan jari mukosa; memperluas permukaan penyerapan. Dilapisi epitel selapis silindris dengan mikrovili (brush border).'],
+   [215-38,95,9,'Sel goblet','Sel pensekresi mukus (tampak bening/putih) di antara enterosit.'],[215,130,8,'Lakteal','Pembuluh limfe sentral vilus yang mengangkut lemak (kilomikron).'],
+   [215,175,26,'Lamina propria','Jaringan ikat longgar berisi kapiler, limfosit, sel plasma, dan lakteal.'],[230,232,16,'Kripta Lieberkühn','Kelenjar tubuler di dasar vilus; sel punca, sel Paneth, sel goblet; regenerasi epitel (± 3–5 hari).'],
+   [350,268,14,'Muskularis mukosa','Lapisan otot polos tipis pemisah mukosa dan submukosa.'],[350,308,26,'Submukosa','Jaringan ikat longgar dengan pembuluh darah, saraf (pleksus Meissner), dan kelenjar Brunner di duodenum.'],
+   [350,366,24,'Muskularis eksterna (sirkuler)','Otot polos lapis dalam sirkuler; peristaltik.'],[350,421,26,'Muskularis eksterna (longitudinal)','Otot polos lapis luar memanjang; pleksus Auerbach di antara kedua lapis.']]},
+ patologi:{label:'Enteritis (vilus tumpul, infiltrasi radang)',
+  draw(c){const r=rng(21);c.fillStyle='#f9f0f3';c.fillRect(0,0,700,520);c.fillStyle='#f0c0d4';c.fillRect(0,200,700,62);
+   for(let i=0;i<4;i++){const x=95+i*165;c.fillStyle='#f4d0e0';c.strokeStyle='#a0507a';c.lineWidth=6;c.beginPath();c.roundRect(x-65,150,130,52,24);c.fill();c.stroke();
+    for(let j=0;j<40;j++)disc(c,x-55+r()*110,160+r()*38,2,'#4a2b78');}
+   for(let j=0;j<300;j++)disc(c,r()*700,205+r()*55,2.1,'#5a3b8a');
+   for(let i=0;i<14;i++){const x=42+i*47;c.fillStyle='#f8dde8';c.strokeStyle='#a0507a';c.lineWidth=3;c.beginPath();c.roundRect(x-8,208,16,50,7);c.fill();c.stroke();disc(c,x,230,2.5,'#2a1448');}
+   c.fillStyle='#e07a9f';c.fillRect(0,262,700,12);c.fillStyle='#f4d6e2';c.fillRect(0,274,700,66);for(let j=0;j<90;j++)disc(c,r()*700,276+r()*60,2,'#5a3b8a');
+   c.fillStyle='#e59ab8';c.fillRect(0,340,700,52);c.fillStyle='#d98aa8';c.fillRect(0,392,700,58);
+  },
+  spots:[[160,178,50,'Vilus tumpul/memendek','Vilus memendek dan melebar (atrofi/fusi); luas penyerapan berkurang sehingga terjadi diare dan malabsorpsi. Dapat disebabkan virus (parvovirus, rotavirus), bakteri, atau parasit (mis. koksidia).'],
+   [300,230,60,'Infiltrasi sel radang','Banyak sel radang (limfosit, sel plasma, neutrofil) berinti gelap di lamina propria.'],[330,230,14,'Hiperplasia kripta','Kripta memanjang dan lebih padat karena regenerasi epitel yang meningkat.']]}},
+kulit:{n:'Kulit',
+ normal:{
+  draw(c){const r=rng(31);c.fillStyle='#f8e3ea';c.fillRect(0,0,700,520);
+   c.fillStyle='#f3b9cc';c.fillRect(0,64,700,52);
+   for(let x=6;x<700;x+=17)for(let y=70;y<108;y+=14)oval(c,x+(y%28?8:0),y,8,6.5,0,'#f6c7d6','#d98aa8',.8);
+   for(let x=4;x<700;x+=12)disc(c,x,56,2,'#4b2a7a'),disc(c,x+5,50,1.6,'#4b2a7a');
+   for(let x=0;x<700;x+=22){c.fillStyle='#fbeaf0';c.strokeStyle='#e4bccb';c.lineWidth=1;c.beginPath();c.roundRect(x+(x%44?5:0),18,26,18,5);c.fill();c.stroke();}
+   for(let x=4;x<700;x+=11){oval(c,x,114,4.5,6,0,'#d986a8','#a0507a',.8);disc(c,x,114,2.2,'#3a1c6a');}
+   c.strokeStyle='#e9a8bf';c.lineWidth=2.2;for(let i=0;i<46;i++){c.beginPath();const y=140+i*8.2;c.moveTo(0,y);c.bezierCurveTo(170,y-10,330,y+12,700,y-4);c.stroke();}
+   c.fillStyle='#f7dfe7';c.strokeStyle='#9a5a82';c.lineWidth=3;c.beginPath();c.roundRect(222,112,40,230,18);c.fill();c.stroke();
+   c.fillStyle='#4a3022';c.beginPath();c.roundRect(235,60,14,260,6);c.fill();oval(c,242,336,26,20,0,'#f1c5d6','#9a5a82',3);oval(c,242,340,10,12,0,'#7a5238');
+   for(let i=0;i<9;i++)disc(c,330+Math.cos(i*1.3)*30+Math.sin(i)*8,225+Math.sin(i*1.1)*24,10,'#fbf2f6','#d9a0b8',1.4);
+   disc(c,520,300,22,'#fbeaf0','#a0507a',4);for(let i=0;i<7;i++)disc(c,520+Math.cos(i)*10,300+Math.sin(i)*10,3.4,'#c63a3a');
+  },
+  spots:[[300,26,22,'Stratum korneum','Lapisan sel mati berkeratin; sawar fisik dan penahan air.'],[300,55,18,'Stratum granulosum','Sel dengan butir keratohialin gelap.'],[300,88,26,'Stratum spinosum','Sel poligonal dengan jembatan antarsel (desmosom).'],[300,114,10,'Stratum basale','Sel kuboid/silindris bermitosis; sel punca epidermis dan melanosit.'],
+   [242,200,26,'Folikel rambut','Struktur tubuler berisi batang rambut (hitam kecoklatan) dan selubung akar.'],[242,338,26,'Bulbus rambut','Pangkal folikel tempat rambut tumbuh (papila dermal).'],[330,225,40,'Kelenjar sebasea','Lobulus sel berbusa penghasil sebum yang bermuara ke folikel.'],[520,300,24,'Pembuluh darah dermis','Venula/arteriola dalam dermis.'],[500,200,50,'Dermis','Jaringan ikat padat tak teratur: serat kolagen dan elastin.']]},
+ patologi:{label:'Dermatitis (akantosis, hiperkeratosis, infiltrat)',
+  draw(c){const r=rng(32);c.fillStyle='#f8e3ea';c.fillRect(0,0,700,520);
+   const yb=x=>120+22*Math.abs(Math.sin(x/38));
+   c.fillStyle='#f3b9cc';c.beginPath();c.moveTo(0,70);c.lineTo(700,70);for(let x=700;x>=0;x-=4)c.lineTo(x,yb(x));c.closePath();c.fill();
+   for(let x=6;x<700;x+=17)for(let y=76;y<150;y+=14){if(y<yb(x))oval(c,x+(y%28?8:0),y,8,6.5,0,'#f1b7ca','#d98aa8',.8);}
+   for(let x=0;x<700;x+=22){c.fillStyle='#fbeaf0';c.strokeStyle='#e4bccb';c.beginPath();c.roundRect(x,10+(x%44?4:0),26,18,5);c.fill();c.stroke();c.beginPath();c.roundRect(x+3,34+(x%44?4:0),26,18,5);c.fill();c.stroke();}
+   c.fillStyle='#fbeaf0';c.fillRect(0,52,700,18);for(let x=0;x<700;x+=11)disc(c,x,yb(x)-3,2.2,'#3a1c6a');
+   c.strokeStyle='#e9a8bf';c.lineWidth=2;for(let i=0;i<40;i++){c.beginPath();const y=170+i*9;c.moveTo(0,y);c.bezierCurveTo(170,y-10,330,y+12,700,y-4);c.stroke();}
+   for(let j=0;j<420;j++)disc(c,r()*700,150+r()*130,2.2,r()<.6?'#5a3b8a':'#8a4aa8');
+   c.fillStyle='#f7dfe7';c.strokeStyle='#9a5a82';c.lineWidth=3;c.beginPath();c.roundRect(222,140,40,200,18);c.fill();c.stroke();
+  },
+  spots:[[300,35,24,'Hiperkeratosis','Penebalan stratum korneum akibat produksi keratin berlebih.'],[300,100,40,'Akantosis','Penebalan stratum spinosum dengan tonjolan epidermis (rete ridges) ke dermis.'],[300,210,60,'Infiltrasi sel radang dermis','Sel radang (limfosit, sel plasma, eosinofil/neutrofil) di sekitar pembuluh darah; penyebab antara lain alergi, infeksi, atau tungau.']]}},
+otot:{n:'Otot rangka',
+ normal:{
+  draw(c){const r=rng(41);c.fillStyle='#f6dde6';c.fillRect(0,0,700,520);
+   for(let i=0;i<8;i++){const y=14+i*62;c.fillStyle='#e9a3bd';c.fillRect(10,y,320,48);
+    for(let x=10;x<330;x+=7){c.fillStyle=(x/7|0)%2?'rgba(190,100,140,.5)':'rgba(255,220,235,.3)';c.fillRect(x,y,3.5,48);}
+    for(let j=0;j<5;j++){const x=30+r()*280;oval(c,x,y+(r()<.5?3:45),9,3,0,'#4a2b78');}}
+   for(let row=0;row<8;row++)for(let col=0;col<8;col++){const x=372+col*40+(row%2?20:0),y=30+row*58;if(x>690)continue;
+    oval(c,x,y,19,19,0,'#e9a3bd','#b8648c',1.6);disc(c,x+(r()<.5?-14:14)*.8,y+(r()-.5)*20,2.8,'#4a2b78');}
+   c.strokeStyle='#d98aa8';c.lineWidth=4;c.beginPath();c.moveTo(352,0);c.lineTo(352,520);c.stroke();
+  },
+  spots:[[170,38,16,'Serat otot (potongan memanjang)','Sel multinukleus panjang; sarkomer teratur membentuk pita gelap-terang (lurik).'],[170,200,20,'Striasi (pita A dan I)','Pola lurik dari filamen aktin dan miosin pada sarkomer.'],
+   [100,45,10,'Inti perifer','Inti banyak terletak di tepi di bawah sarkolema (ciri otot rangka).'],[500,206,19,'Serat otot (potongan melintang)','Penampang poligonal-bulat dengan inti di perifer.'],[352,260,10,'Perimisium','Jaringan ikat yang membungkus berkas (fasikulus) serat otot; jalur pembuluh darah dan saraf.']]},
+ patologi:{label:'Degenerasi/nekrosis serat otot',
+  draw(c){const r=rng(42);c.fillStyle='#f6dde6';c.fillRect(0,0,700,520);
+   for(let i=0;i<8;i++){const y=14+i*62,bad=r()<.45;c.fillStyle=bad?'#d4457f':'#e9a3bd';c.fillRect(10,y,320,48);
+    if(!bad)for(let x=10;x<330;x+=7){c.fillStyle=(x/7|0)%2?'rgba(190,100,140,.5)':'rgba(255,220,235,.3)';c.fillRect(x,y,3.5,48);}
+    else{for(let x=20;x<320;x+=60){c.fillStyle='rgba(120,20,70,.35)';c.fillRect(x,y+4,30,40);}for(let j=0;j<4;j++)disc(c,30+r()*270,y+10+r()*28,2,'#120a20');}
+    for(let j=0;j<18;j++)disc(c,10+r()*320,y+(r()<.5?-3:51),2.4,'#5a3b8a');}
+   for(let row=0;row<8;row++)for(let col=0;col<8;col++){const x=372+col*40+(row%2?20:0),y=30+row*58;if(x>690)continue;const bad=r()<.4;
+    oval(c,x,y,bad?21:19,bad?21:19,0,bad?'#d4457f':'#e9a3bd','#b8648c',1.6);if(!bad)disc(c,x+(r()<.5?-11:11),y+(r()-.5)*20,2.8,'#4a2b78');}
+   for(let j=0;j<60;j++)disc(c,360+r()*330,r()*520,2.4,'#5a3b8a');
+  },
+  spots:[[170,38,18,'Serat nekrotik/degeneratif','Serat membengkak, sangat eosinofilik (merah tua), striasi hilang, inti piknotik/hilang, sitoplasma menggumpal. Contoh: miopati nutrisional (defisiensi vitamin E/selenium), cedera, toksin.'],
+   [520,206,21,'Serat melintang nekrotik','Serat membulat dan lebih merah dibanding tetangganya.'],[440,320,70,'Infiltrasi makrofag/sel radang','Sel inti gelap di antara serat; fagositosis sisa serat nekrotik sebelum regenerasi oleh sel satelit.']]}},
+paru:{n:'Paru-paru',
+ normal:{
+  draw(c){const r=rng(51);c.fillStyle='#fbeef3';c.fillRect(0,0,700,520);
+   for(let gx=0;gx<14;gx++)for(let gy=0;gy<11;gy++){const x=25+gx*50+(gy%2?25:0)+(r()-.5)*10,y=25+gy*50+(r()-.5)*10;if(Math.hypot(x-350,y-260)<95||Math.hypot(x-560,y-380)<48)continue;disc(c,x,y,22+r()*4,'#fffafb','#d77aa0',1.5);}
+   disc(c,350,260,66,'#fffdfd');c.strokeStyle='#9a5090';c.lineWidth=5;c.beginPath();for(let a=0;a<=6.3;a+=.04){const rr=54+4*Math.sin(a*14);a?c.lineTo(350+Math.cos(a)*rr,260+Math.sin(a)*rr):c.moveTo(350+rr,260);}c.stroke();
+   disc(c,350,260,72,null,'#d8608f',9);disc(c,560,380,34,'#f6d0d8','#a04668',6);disc(c,560,380,22,'#c63a3a');
+  },
+  spots:[[300,150,22,'Alveolus','Kantung udara berdinding tipis tempat pertukaran O2–CO2.'],[325,150,5,'Septum interalveolar','Dinding tipis dengan kapiler; sawar darah-udara sangat tipis.'],[350,260,50,'Bronkiolus','Saluran udara kecil tanpa tulang rawan; epitel bersilia melipat.'],[350,206,10,'Otot polos bronkiolus','Cincin otot polos mengatur diameter saluran (bronkokonstriksi).'],[560,380,34,'Arteri pulmonalis (cabang)','Pembuluh darah yang menyertai bronkiolus.']]},
+ patologi:{label:'Pneumonia (alveoli berisi eksudat)',
+  draw(c){const r=rng(52);c.fillStyle='#fbeef3';c.fillRect(0,0,700,520);
+   for(let gx=0;gx<14;gx++)for(let gy=0;gy<11;gy++){const x=25+gx*50+(gy%2?25:0)+(r()-.5)*10,y=25+gy*50+(r()-.5)*10;if(Math.hypot(x-350,y-260)<95||Math.hypot(x-560,y-380)<48)continue;
+    disc(c,x,y,22+r()*4,'#f4bdd2','#c8508a',3.2);for(let j=0;j<5;j++){const px=x+(r()-.5)*28,py=y+(r()-.5)*28;disc(c,px,py,2.6,'#4a2b78');disc(c,px+3,py+1,2.2,'#4a2b78');}}
+   disc(c,350,260,66,'#f4d0d8');c.strokeStyle='#9a5090';c.lineWidth=5;c.beginPath();for(let a=0;a<=6.3;a+=.04){const rr=54+4*Math.sin(a*14);a?c.lineTo(350+Math.cos(a)*rr,260+Math.sin(a)*rr):c.moveTo(350+rr,260);}c.stroke();
+   for(let j=0;j<20;j++)disc(c,350+(r()-.5)*70,260+(r()-.5)*70,2.5,'#4a2b78');disc(c,350,260,72,null,'#d8608f',9);disc(c,560,380,34,'#f6d0d8','#a04668',6);disc(c,560,380,22,'#c63a3a');
+  },
+  spots:[[300,150,24,'Alveolus berisi eksudat','Rongga alveoli terisi cairan, fibrin, dan neutrofil sehingga udara tidak dapat masuk (konsolidasi). Penyebab: bakteri (mis. Pasteurella pada sapi), virus, aspirasi.'],[350,260,50,'Bronkiolus dengan eksudat','Lumen berisi sel radang dan debris (bronkopneumonia).']]}}
+};
+inits.histo=function(){
+  const cv=$('#his-cv'),c=cv.getContext('2d'),info=$('#his-info');
+  let tk='hati',st='normal';
+  $('#his-tissue').innerHTML=Object.entries(HT).map(([k,t])=>`<button class="b${k===tk?' on':''}" data-k="${k}">${t.n}</button>`).join(' ');
+  const setState=()=>{$('#his-state').innerHTML=`<button class="b${st==='normal'?' on':''}" data-s="normal">Normal</button> <button class="b${st==='patologi'?' on':''}" data-s="patologi">${HT[tk].patologi.label}</button>`;};
+  function intro(){const t=HT[tk],cur=t[st];info.innerHTML=`<h2>${t.n} — ${st==='normal'?'normal':cur.label}</h2><p class="muted">Klik struktur pada gambar. Pewarnaan H&amp;E: inti ungu-biru (hematoksilin), sitoplasma/serat merah muda (eosin).</p>
+    <h3>Struktur yang bisa diklik</h3><div class="chips">${cur.spots.map((s,i)=>`<span class="chip" data-i="${i}">${s[3]}</span>`).join('')}</div>
+    <p class="note">Ilustrasi skematis buatan kode untuk belajar pola; bukan foto preparat asli. Rujuk atlas histologi dan patologi veteriner untuk gambaran sebenarnya.</p>`;
+    $$('.chip',info).forEach(ch=>ch.onclick=()=>show(cur.spots[+ch.dataset.i]));}
+  function show(s){info.innerHTML=`<button class="b" id="hback">← Daftar struktur</button><h2 style="margin-top:10px">${s[3]}</h2><p>${s[4]}</p>`;$('#hback',info).onclick=intro;}
+  function draw(){HT[tk][st].draw(c);setState();intro();}
+  $('#his-tissue').onclick=e=>{const k=e.target.dataset.k;if(!k)return;tk=k;st='normal';$$('#his-tissue button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));draw();};
+  $('#his-state').onclick=e=>{const s=e.target.dataset.s;if(!s)return;st=s;draw();};
+  canvasSpots(cv,()=>HT[tk][st].spots,show);
+  draw();
+};
+
+/* ---------- embriologi ---------- */
+const ES=[
+ ['Zigot (1 sel)','Sel telur yang dibuahi, dikelilingi zona pelusida; dua pronukleus (jantan dan betina) menyatu (singami), badan kutub tampak di ruang perivitelin.','Sapi: terjadi di ampula tuba uterina, ± 12–24 jam setelah ovulasi.'],
+ ['Pembelahan 2 sel','Sitokinesis berulang tanpa pertumbuhan: sel (blastomer) makin kecil.','Sapi: ± 1–1,5 hari setelah fertilisasi.'],
+ ['4 sel','Blastomer masih totipoten (dapat membentuk individu utuh); dasar kembar identik.','Sapi: ± 2 hari.'],
+ ['8 sel','Aktivasi genom embrio (maternal-ke-zigotik); pada sapi terjadi sekitar tahap 8–16 sel.','Sapi: ± 3 hari.'],
+ ['Morula','Gumpalan padat 16–32 sel; sel luar dan dalam mulai berbeda (kompaksi).','Sapi: memasuki uterus ± hari 4–5 sebagai morula.'],
+ ['Blastosista','Trofoblas (menjadi plasenta) mengelilingi blastosel; massa sel dalam (inner cell mass) menjadi embrio.','Sapi: ± hari 7; "menetas" dari zona pelusida ± hari 9–10, lalu memanjang (elongasi) ± hari 13–17.'],
+ ['Gastrula','Tiga lapisan germinal terbentuk lewat gastrulasi (primitive streak): ektoderm, mesoderm, endoderm.','Ayam: primitive streak terlihat ± 16–18 jam inkubasi.'],
+ ['Neurula','Lempeng saraf melipat menjadi tabung saraf; notokorda dan somit terbentuk; dasar sistem saraf pusat.','Ayam: ± hari 1–2 inkubasi.'],
+ ['Organogenesis','Organ terbentuk: jantung berdetak, tunas anggota gerak, mata, somit; tubuh melengkung (C).','Ayam: jantung berdetak ± 40–44 jam; tunas sayap/kaki ± hari 3.']
+];
+const GERM=[['Ektoderm','Epidermis dan turunannya (rambut, kuku/tanduk, kelenjar), sistem saraf pusat dan perifer, lensa mata, krista neural (melanosit, ganglia).'],['Mesoderm','Otot, tulang, tulang rawan, jantung, pembuluh darah dan darah, ginjal, gonad dan saluran reproduksi, dermis.'],['Endoderm','Lapisan saluran pencernaan dan pernapasan, hati, pankreas, tiroid, kandung kemih.']];
+const CHICK=[['0 (telur dierami)','Blastoderm; primitive streak ± jam ke-16–18'],['1','Neurulasi, somit pertama, mulai pembentukan jantung'],['2','Jantung mulai berdetak (± jam ke-40–44); kantung optik'],['3','Amnion dan alantois; tunas sayap dan kaki'],['4','Mata berpigmen; embrio melengkung'],['6','Paruh dan jari mulai terbentuk'],['10','Folikel bulu terbentuk; paruh mengeras'],['14','Embrio berposisi kepala ke arah ujung tumpul telur'],['19–20','Kuning telur ditarik masuk; paru-paru mulai bernapas (pip internal)'],['21','Menetas']];
+inits.embrio=function(){
+  const cv=$('#emb-cv'),c=cv.getContext('2d'),info=$('#emb-info');let idx=0;
+  const cell=(x,y,r,col)=>{const g=c.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);g.addColorStop(0,'#fff6e0');g.addColorStop(1,col||'#e8c88a');c.fillStyle=g;c.strokeStyle='#a07a3a';c.lineWidth=1.5;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.stroke();};
+  let spots=[];
+  function draw(){
+    c.fillStyle='#1d2a38';c.fillRect(0,0,700,520);spots=[];const cx=350,cy=260;
+    const zp=(r)=>{c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=10;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();};
+    if(idx===0){zp(190);cell(cx,cy,160);disc(c,cx-45,cy,26,'#8a5a9a');disc(c,cx+45,cy,26,'#5a7aaa');disc(c,cx+130,cy-95,10,'#e8c88a','#a07a3a',1.5);}
+    else if(idx===1){zp(190);cell(cx-85,cy,86);cell(cx+85,cy,86);}
+    else if(idx===2){zp(190);[[-80,-70],[80,-70],[-80,80],[80,80]].forEach(p=>cell(cx+p[0],cy+p[1],72));}
+    else if(idx===3){zp(190);for(let i=0;i<8;i++){const a=i/8*6.28;cell(cx+Math.cos(a)*105,cy+Math.sin(a)*105,58);}cell(cx,cy,52);}
+    else if(idx===4){zp(190);const r=rng(4);for(let i=0;i<30;i++){const rr=Math.sqrt(i/30)*135,a=i*2.4;cell(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,37,i%3?'#e8c88a':'#efd69c');}}
+    else if(idx===5){zp(195);disc(c,cx,cy,172,'#d4ecf6','#8ab',2);for(let i=0;i<30;i++){const a=i/30*6.28;cell(cx+Math.cos(a)*158,cy+Math.sin(a)*158,19,'#c8e0a0');}for(let i=0;i<7;i++)cell(cx-60+(i%3)*28+(i>2?14:0),cy-80+(i/3|0)*26+(i>5?0:0),24,'#e8a85a');
+      spots.push([cx-35,cy-60,50,'Massa sel dalam (embrioblas)','Sel yang akan membentuk embrio sesungguhnya.'],[cx,cy+60,70,'Blastosel','Rongga berisi cairan.'],[cx+158,cy,30,'Trofoblas','Lapisan luar yang membentuk selaput janin dan plasenta (korion).']);}
+    else if(idx===6){
+      c.fillStyle='#6aa7e0';c.beginPath();c.roundRect(80,150,540,40,18);c.fill();c.fillStyle='#e07a6a';c.beginPath();c.roundRect(150,198,400,42,16);c.fill();c.fillStyle='#e6c25a';c.beginPath();c.roundRect(80,248,540,40,18);c.fill();
+      c.fillStyle='#1d2a38';c.beginPath();c.moveTo(335,150);c.lineTo(365,150);c.lineTo(350,185);c.fill();c.fillStyle='#fff';c.font='15px sans-serif';c.fillText('Ektoderm',100,175);c.fillText('Mesoderm',170,225);c.fillText('Endoderm',100,273);c.fillText('Primitive streak',300,140);
+      c.strokeStyle='#fff';c.lineWidth=2;[-30,30].forEach(o=>{c.beginPath();c.moveTo(350+o,170);c.lineTo(350+o*2.2,225);c.stroke();});
+      spots.push([350,170,40,'Ektoderm',GERM[0][1]],[350,220,55,'Mesoderm',GERM[1][1]],[350,268,45,'Endoderm',GERM[2][1]],[350,150,25,'Primitive streak','Alur tempat sel epiblas bermigrasi ke dalam (ingresi) membentuk mesoderm dan endoderm.']);}
+    else if(idx===7){
+      c.fillStyle='#6aa7e0';c.beginPath();c.ellipse(350,260,280,170,0,Math.PI,0);c.lineTo(630,260);c.lineTo(70,260);c.fill();
+      c.fillStyle='#e07a6a';c.beginPath();c.ellipse(350,260,240,95,0,0,Math.PI);c.fill();c.fillStyle='#1d2a38';c.beginPath();c.ellipse(350,260,218,74,0,0,Math.PI);c.fill();
+      c.fillStyle='#e6c25a';c.beginPath();c.ellipse(350,300,95,52,0,Math.PI,0);c.fill();c.fillStyle='#1d2a38';c.beginPath();c.ellipse(350,300,60,25,0,Math.PI,0);c.fill();
+      disc(c,350,150,48,'#4f8ed0','#fff',2);disc(c,350,150,18,'#1d2a38');disc(c,350,242,17,'#f3d9a0','#fff',2);
+      [-1,1].forEach(s=>{disc(c,350+s*95,215,36,'#f09585','#fff',2);disc(c,350+s*60,110,5,'#b6d3f0');});
+      c.fillStyle='#fff';c.font='14px sans-serif';c.fillText('Tabung saraf',308,155);c.fillText('Notokorda',305,247);c.fillText('Somit',112,220);c.fillText('Usus primitif',308,330);
+      spots.push([350,150,48,'Tabung saraf (ektoderm)','Menjadi otak dan sumsum tulang belakang. Sel krista neural bermigrasi membentuk ganglia, melanosit, dll.'],[350,242,18,'Notokorda (mesoderm)','Penginduksi tabung saraf; sisanya menjadi nukleus pulposus diskus intervertebralis.'],[255,215,38,'Somit (mesoderm)','Menjadi tulang belakang (sklerotom), otot rangka (miotom), dermis (dermatom).'],[445,215,38,'Somit (mesoderm)','Menjadi tulang belakang, otot rangka, dan dermis.'],[350,300,52,'Usus primitif (endoderm)','Menjadi epitel saluran cerna, hati, pankreas, paru.'],[110,190,50,'Ektoderm permukaan','Menjadi epidermis dan turunannya.']);}
+    else{
+      c.lineCap='round';c.strokeStyle='#e7a49a';c.lineWidth=74;c.beginPath();c.moveTo(250,170);c.bezierCurveTo(420,110,520,250,380,340);c.stroke();c.lineWidth=40;c.beginPath();c.moveTo(380,340);c.quadraticCurveTo(320,410,250,380);c.stroke();c.lineWidth=14;c.beginPath();c.moveTo(250,380);c.quadraticCurveTo(220,395,205,370);c.stroke();
+      disc(c,250,160,70,'#e7a49a');disc(c,225,148,12,'#222');disc(c,300,265,22,'#c63a3a');disc(c,440,185,17,'#e7a49a','#b8786e',2);disc(c,420,325,15,'#e7a49a','#b8786e',2);
+      c.strokeStyle='rgba(130,60,50,.6)';c.lineWidth=2;for(let i=0;i<9;i++){const t=i/9;c.beginPath();c.arc(300+i*14,150+Math.sin(i)*14+i*8,8,0,7);c.stroke();}
+      disc(c,430,400,80,'#f1d38a','#b89440',3);
+      spots.push([250,160,70,'Kepala dan otak','Vesikel otak (prosensefalon, mesensefalon, rombensefalon); mata berpigmen.'],[300,265,22,'Jantung','Tabung jantung melengkung dan mulai berdetak; sirkulasi awal.'],[440,185,20,'Tunas anggota gerak','Tunas sayap/kaki depan; ektoderm di ujung (AER) mengatur pertumbuhan.'],[430,400,80,'Kantung kuning telur','Sumber nutrisi (terutama unggas) dan tempat pembentukan darah awal.'],[330,200,60,'Somit','Blok mesoderm segmental sepanjang punggung.']);}
+    $('#emb-name').textContent=ES[idx][0];
+    info.innerHTML=`<h2>${ES[idx][0]}</h2><p>${ES[idx][1]}</p><p class="muted">${ES[idx][2]}</p>
+    ${idx>=6?`<h3>Turunan lapisan germinal</h3>${GERM.map(g=>`<p><b>${g[0]}:</b> ${g[1]}</p>`).join('')}`:''}
+    <h3>Perkembangan embrio ayam (21 hari)</h3><div class="scroll" style="max-height:200px"><table><tr><th>Hari</th><th>Peristiwa</th></tr>${CHICK.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table></div>
+    <p class="note">Waktu bersifat perkiraan dan berbeda antarspesies dan kondisi; cocokkan dengan buku embriologi veteriner (mis. Noden &amp; de Lahunta).</p>`;
+  }
+  $('#emb-sl').oninput=e=>{idx=+e.target.value;draw();};
+  canvasSpots(cv,()=>spots,s=>{info.innerHTML=`<button class="b" id="eback2">← Tahap ini</button><h2 style="margin-top:10px">${s[3]}</h2><p>${s[4]}</p>`;$('#eback2',info).onclick=draw;});
+  draw();
+};
+
+/* ---------- reproduksi ---------- */
+const RSP={
+ sapi:{n:'Sapi',type:'ruminant',row:['Sapi','Poliestrus sepanjang tahun','± 21 hari (18–24)','± 12–18 jam','Spontan, ± 10–14 jam setelah estrus berakhir','± 283 hari','Kotiledon (sinepiteliokorial)','Fibroelastis, ada sigmoid flexure']},
+ kambing:{n:'Kambing/Domba',type:'ruminant',row:['Kambing/Domba','Poliestrus musiman (hari pendek)','Kambing ± 21 hari; domba ± 17 hari','24–48 jam (domba 24–36 jam)','Spontan','Kambing ± 150 hari; domba ± 147 hari','Kotiledon','Fibroelastis, sigmoid flexure']},
+ kuda:{n:'Kuda',type:'mare',row:['Kuda','Poliestrus musiman (hari panjang)','± 21 hari','5–7 hari','Spontan, hanya pada fossa ovulasi','± 340 hari','Difus (epiteliokorial)','Muskulokavernosa']},
+ babi:{n:'Babi',type:'sow',row:['Babi','Poliestrus sepanjang tahun','± 21 hari','2–3 hari','Spontan; banyak oosit (multipara)','± 114 hari','Difus (epiteliokorial)','Fibroelastis, glans berbentuk spiral']},
+ anjing:{n:'Anjing',type:'carn',row:['Anjing','Monoestrus, tidak musiman (1–2 siklus/tahun)','Interestrus ± 6–7 bulan','Proestrus ± 9 hari + estrus ± 9 hari','Spontan; oosit matang 2–3 hari setelah ovulasi','± 63 hari (dari ovulasi)','Zonal (endoteliokorial)','Ada os penis dan bulbus glandis (copulatory tie)']},
+ kucing:{n:'Kucing',type:'carn',row:['Kucing','Poliestrus musiman (hari panjang)','Estrus berulang bila tidak kawin','± 4–10 hari','Terinduksi oleh kopulasi','63–66 hari','Zonal (endoteliokorial)','Berduri (penile spines), penis mengarah ke belakang']},
+ ayam:{n:'Ayam',type:'bird',row:['Ayam','Unggas; hanya ovarium dan oviduk kiri fungsional','Telur terbentuk ± 24–26 jam','—','Beberapa menit–jam setelah oviposisi (berurutan)','Inkubasi 21 hari','Tidak ada plasenta (telur beramnion)','Tidak ada penis sejati; papila fallus rudimenter']},
+ kura:{n:'Kura-kura',type:'turtle',row:['Kura-kura','Ovipar; musiman','Bervariasi menurut spesies','—','—','Inkubasi ± 2–3 bulan (bervariasi); jenis kelamin dipengaruhi suhu pada banyak spesies','Tidak ada plasenta (telur bercangkang)','Penis tunggal pada dasar kloaka']},
+ ular:{n:'Ular',type:'snake',row:['Ular','Ovipar atau vivipar menurut spesies; musiman','Bervariasi','—','—','Bervariasi; betina beberapa spesies dapat menyimpan sperma','Bergantung spesies','Hemipenis berpasangan di pangkal ekor']}
+};
+const FEM={
+ ruminant:{horn:[[352,268],[318,244],[285,222],[250,214],[226,226],[220,250],[238,262]],ov:[172,250],ovd:[[238,262],[205,252],[184,250]],b:[268,292],hw:20,rings:true,car:true,
+  note:'Uterus bikornu; kornu melingkar seperti tanduk, korpus pendek. Serviks tebal dengan cincin annular. Dinding uterus memiliki karunkula (tonjolan) tempat melekat kotiledon plasenta.'},
+ mare:{horn:[[352,232],[318,205],[290,180]],ov:[238,160],ovd:[[290,180],[268,168],[252,162]],b:[232,292],hw:26,
+  note:'Uterus bikornu dengan korpus besar dan kornu pendek. Ovarium berbentuk ginjal dengan fossa ovulasi; ovulasi hanya terjadi di fossa.'},
+ sow:{horn:[[352,270],[300,250],[240,262],[200,235],[245,205],[300,215],[270,185],[220,170],[180,195],[150,170]],ov:[118,150],ovd:[[150,170],[132,158]],b:[270,292],hw:18,
+  note:'Kornu sangat panjang dan berkelok (menampung banyak fetus); korpus pendek. Ovarium berbentuk seperti buah murbei saat banyak folikel/korpus luteum.'},
+ carn:{horn:[[352,270],[320,225],[290,180],[262,140]],ov:[240,118],ovd:[[262,140],[248,126]],b:[272,292],hw:12,
+  note:'Uterus bikornu bentuk "V/Y": kornu panjang ramping, korpus sangat pendek. Ovarium berada dalam bursa ovarii.'}
+};
+function tubeP(c,pts,w,col,out){c.lineCap='round';c.lineJoin='round';[[w+4,out],[w,col]].forEach(([lw,cl])=>{c.strokeStyle=cl;c.lineWidth=lw;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length-1;i++){const mx=(pts[i][0]+pts[i+1][0])/2,my=(pts[i][1]+pts[i+1][1])/2;c.quadraticCurveTo(pts[i][0],pts[i][1],mx,my);}c.lineTo(pts[pts.length-1][0],pts[pts.length-1][1]);c.stroke();});}
+const mx=p=>[720-p[0],p[1]];
+function drawFemale(c,k,spots){
+  const T=RSP[k].type,PINK='#e8a0b4',OUT='#8a4a62';
+  c.fillStyle='#14202b';c.fillRect(0,0,720,440);
+  if(FEM[T]){const f=FEM[T];
+    [false,true].forEach(m=>{const M=p=>m?mx(p):p;
+      tubeP(c,f.horn.map(M),f.hw,PINK,OUT);tubeP(c,f.ovd.map(M),5,'#f0c8d4',OUT);
+      const o=M(f.ov);if(T==='sow'){for(let i=0;i<9;i++)disc(c,o[0]+Math.cos(i*2)*15,o[1]+Math.sin(i*2)*13,8,'#f4d2dc',OUT,1.5);}else oval(c,o[0],o[1],T==='mare'?30:T==='carn'?12:22,T==='mare'?19:T==='carn'?9:15,0,'#f0d0b8',OUT,2);
+      if(T==='carn'){c.strokeStyle='#c8a0b0';c.lineWidth=2;c.beginPath();c.arc(o[0],o[1],16,0,7);c.stroke();}
+      if(f.car)f.horn.slice(1,5).forEach(p=>{const q=M(p);disc(c,q[0],q[1],3.5,'#7a2a42');});
+      spots.push([o[0],o[1],26,'Ovarium','Menghasilkan oosit dan hormon (estrogen, progesteron).',]);
+      const od=M(f.ovd[Math.floor(f.ovd.length/2)]);spots.push([od[0],od[1],14,'Tuba uterina (oviduk)','Tempat pembuahan (ampula) dan transport embrio ke uterus.']);
+      const hm=M(f.horn[Math.floor(f.horn.length/2)]);spots.push([hm[0],hm[1],f.hw,'Kornu uteri','Tempat embrio berkembang; jumlah dan panjang berbeda antarspesies.']);});
+    tubeP(c,[[360,f.b[0]],[360,f.b[1]]],Math.max(34,f.hw+8),PINK,OUT);
+    tubeP(c,[[360,292],[360,330]],30,'#d98aa0',OUT);
+    if(f.rings){c.strokeStyle='#7a3a52';c.lineWidth=2;for(let y=298;y<328;y+=7){c.beginPath();c.moveTo(348,y);c.lineTo(372,y);c.stroke();}}
+    tubeP(c,[[360,330],[360,402]],28,'#e8b0c0',OUT);oval(c,360,412,16,6,0,'#c06a82',OUT,2);
+    spots.push([360,(f.b[0]+f.b[1])/2,22,'Korpus uteri','Bagian tubuh uterus; ukuran berbeda antarspesies (besar pada kuda, sangat pendek pada anjing/kucing).'],[360,311,15,'Serviks','Pintu uterus; berotot tebal dan tertutup saat bunting (sumbat mukus).'],[360,366,16,'Vagina','Saluran kopulasi dan jalan lahir.'],[360,412,18,'Vulva','Pintu luar saluran kelamin betina.']);
+  }else if(T==='bird'){
+    disc(c,300,70,34,'#f5c23a','#a07010',2);disc(c,355,58,27,'#f5c23a','#a07010',2);disc(c,385,98,21,'#f5c23a','#a07010',2);disc(c,330,110,15,'#f1cf5a','#a07010',2);for(let i=0;i<8;i++)disc(c,290+i*13,115+(i%2)*9,5+(i%3),'#f1dc8a','#a07010',1);
+    c.fillStyle='#d86a8a';c.beginPath();c.moveTo(285,155);c.lineTo(355,155);c.lineTo(330,190);c.lineTo(310,190);c.closePath();c.fill();
+    tubeP(c,[[320,195],[298,220],[342,250],[298,280],[340,308]],28,'#f4f1ea','#9a8a7a');tubeP(c,[[340,308],[362,330]],18,'#e6d9c6','#9a8a7a');
+    oval(c,368,358,40,25,0,'#f0e6d0','#9a8a7a',3);oval(c,368,358,26,16,0,'#fff8ea','#c8b89a',2);tubeP(c,[[368,382],[362,400]],12,'#e8b0c0',OUT);oval(c,360,415,18,8,0,'#c06a82',OUT,2);
+    tubeP(c,[[430,110],[440,140]],6,'#9aa','#566');
+    spots.push([320,85,70,'Ovarium (kiri) dan folikel','Hanya ovarium kiri yang fungsional. Folikel berkuning telur (F1 terbesar, siap ovulasi), hierarki ukuran.'],[320,175,28,'Infundibulum','Corong penangkap oosit; tempat pembuahan; terbentuk lapisan pertama putih telur (± 15 menit).'],[320,250,40,'Magnum','Bagian terpanjang; menambah albumen (putih telur kental), ± 3 jam.'],[350,310,16,'Isthmus','Membentuk membran kerabang dalam dan luar, ± 1,25 jam.'],[368,358,40,'Uterus (kelenjar kerabang)','Terbentuknya kerabang kalsium dan pigmen; telur tinggal ± 20 jam.'],[364,392,10,'Vagina','Mendorong telur keluar lewat kloaka; juga tempat penyimpanan sperma (sperm host glands).'],[360,415,18,'Kloaka','Muara bersama saluran pencernaan, kemih, dan reproduksi.'],[433,125,18,'Oviduk kanan (vestigial)','Tereduksi; ovarium dan oviduk kanan umumnya tidak berkembang.']);
+  }else{
+    const sn=T==='snake';
+    [-1,1].forEach(s=>{const x=s<0?240:480,y=sn?(s<0?200:300):160;
+      if(sn){oval(c,x,y,22,90,0,'#f0d0b8',OUT,2);for(let i=0;i<7;i++)disc(c,x+(i%2?8:-8),y-70+i*24,7,'#f5c23a','#a07010',1);tubeP(c,[[x,y+90],[x+(s<0?40:-40),320],[360,380]],8,'#f0c8d4',OUT);}
+      else{oval(c,x,y,44,30,0,'#f0d0b8',OUT,2);for(let i=0;i<6;i++)disc(c,x-24+i*10,y-6+(i%2)*10,6,'#f5c23a','#a07010',1);tubeP(c,[[x,y+30],[x+(s<0?-20:20),240],[x+(s<0?60:-60),330],[360,385]],12,'#f0c8d4',OUT);if(s)null;disc(c,x+(s<0?40:-40),300,20,'#fffbe8','#a09070',2);}
+      spots.push([x,y,sn?60:40,'Ovarium (berpasangan)','Ovarium kiri dan kanan; folikel kuning telur.'],[x+(s<0?60:-60),sn?290:310,24,'Oviduk','Saluran telur berpasangan; telur bercangkang terbentuk di sini.']);});
+    oval(c,360,400,36,16,0,'#c06a82',OUT,2);spots.push([360,400,32,'Kloaka','Muara saluran kemih, pencernaan, dan reproduksi.']);
+  }
+  return FEM[T]?FEM[T].note:T==='bird'?'Hanya sistem reproduksi kiri yang berfungsi. Telur terbentuk sepanjang oviduk dalam ± 24–26 jam.':T==='turtle'?'Dua ovarium dan dua oviduk; telur bercangkang diletakkan di sarang. Pada banyak spesies suhu inkubasi menentukan jenis kelamin.':'Ovarium dan oviduk berpasangan, bentuk memanjang dan posisinya berselang-seling di rongga tubuh; sebagian spesies melahirkan anak (vivipar).';
+}
+function drawMale(c,k,spots){
+  const T=RSP[k].type,PINK='#e8a0b4',OUT='#8a4a62',st=(a,b,r,n,d)=>spots.push([a,b,r,n,d]);
+  c.fillStyle='#14202b';c.fillRect(0,0,720,440);
+  const mamm=['ruminant','mare','sow','carn'].includes(T);
+  if(mamm){
+    tubeP(c,[[360,200],[360,130]],14,'#f0c8c8',OUT);
+    const sig=T==='ruminant';if(sig){tubeP(c,[[360,200],[330,170],[395,140],[330,110],[362,60]],14,'#f0c8c8',OUT);st(360,140,36,'Fleksura sigmoid','Lengkung S pada penis fibroelastis; menegang saat ereksi sehingga penis memanjang.');}
+    if(T==='carn'){tubeP(c,[[360,200],[360,60]],16,'#f0c8c8',OUT);c.fillStyle='#fff';c.fillRect(354,70,12,90);oval(c,360,170,20,26,0,'#d98aa0',OUT,2);st(360,110,16,'Os penis','Tulang penis anjing; mendukung penetrasi.');st(360,172,24,'Bulbus glandis','Pembengkakan yang menimbulkan "kuncian" (copulatory tie) saat kawin.');if(k==='kucing'){for(let i=0;i<8;i++){c.fillStyle='#7a2a42';c.beginPath();c.moveTo(352+i*2.5,68-(i%2)*4);c.lineTo(355+i*2.5,60);c.lineTo(358+i*2.5,68);c.fill();}st(360,62,14,'Duri penis (kucing)','Duri keratin kecil pada glans; merangsang ovulasi.');}}
+    if(T==='sow'){tubeP(c,[[360,200],[360,80]],14,'#f0c8c8',OUT);for(let i=0;i<5;i++)oval(c,360,50+i*7,9,3,.4*i,'#e0a8b8',OUT,1.5);st(360,60,18,'Glans spiral (babi)','Ujung penis berbentuk seperti sekrup, berpasangan dengan serviks bergerigi.');}
+    [-1,1].forEach(s=>{const x=360+s*70,y=T==='ruminant'?330:310;
+      oval(c,x,y,32,48,s*.2,'#e8c8a8',OUT,2);tubeP(c,[[x-s*10,y-40],[x+s*14,y-10],[x+s*10,y+40],[x-s*8,y+44]],6,'#c8a8c0',OUT);tubeP(c,[[x-s*10,y-40],[360+s*20,250],[360+s*8,210]],4,'#e8e0f0',OUT);
+      st(x,y,30,'Testis','Menghasilkan spermatozoa (tubulus seminiferus) dan testosteron (sel Leydig). Terletak di skrotum agar lebih dingin daripada suhu tubuh.');st(x+s*12,y+10,12,'Epididimis','Tempat pematangan dan penyimpanan sperma (kepala, badan, ekor).');});
+    c.fillStyle='#d98aa0';oval(c,360,208,20,12,0,'#d98aa0',OUT,2);st(360,208,18,'Prostat','Menambah cairan semen; satu-satunya kelenjar aksesori anjing.');
+    if(k!=='anjing'&&k!=='kucing'||false){[-1,1].forEach(s=>{oval(c,360+s*38,222,22,12,s*.4,'#f0b8c0',OUT,2);st(360+s*38,222,20,'Kelenjar vesikularis','Menyumbang sebagian besar cairan semen (fruktosa). Tidak ada pada anjing; ada pada ruminansia, kuda, babi (besar).');});}
+    if(k!=='anjing'){[-1,1].forEach(s=>{oval(c,360+s*20,260,10,8,0,'#e0a0b0',OUT,1.5);st(360+s*20,260,12,'Kelenjar bulbouretralis','Cairan pra-ejakulasi; ada pada kucing, ruminansia, kuda, babi; tidak pada anjing.');});}
+    return T==='carn'&&k==='anjing'?'Anjing hanya punya prostat sebagai kelenjar aksesori; penis dengan os penis dan bulbus glandis.':'Testis di skrotum, epididimis, duktus deferens, kelenjar aksesori, dan penis; jenis penis berbeda antarspesies.';
+  }
+  if(T==='bird'){[-1,1].forEach(s=>{oval(c,360+s*70,150+s*6,22,40,0,'#f0e8c8',OUT,2);tubeP(c,[[360+s*70,185],[360+s*50,260],[360+s*10,350]],5,'#e8e0f0',OUT);st(360+s*70,150,30,'Testis (internal)','Terletak di rongga tubuh dekat ginjal; membesar saat musim kawin.');});oval(c,360,375,22,10,0,'#c06a82',OUT,2);disc(c,360,390,5,'#e8a0b4',OUT,1);st(360,380,22,'Kloaka dan papila fallus','Ayam tidak punya penis sejati; kopulasi dengan "cloacal kiss". Bebek/angsa memiliki fallus panjang.');return'Testis internal; sperma lewat duktus deferens ke kloaka.';}
+  if(T==='snake'){[-1,1].forEach(s=>{oval(c,360+s*60,120+s*40,14,50,0,'#f0e8c8',OUT,2);tubeP(c,[[360+s*60,170+s*40],[360+s*20,300],[360+s*18,360]],5,'#e8e0f0',OUT);tubeP(c,[[360+s*18,360],[360+s*26,420]],16,PINK,OUT);st(360+s*60,130,30,'Testis (internal)','Berpasangan, memanjang; posisi kanan lebih depan.');st(360+s*26,400,16,'Hemipenis','Sepasang organ kopulasi yang tersimpan terbalik dalam pangkal ekor; satu dipakai saat kawin.');});return'Testis berpasangan di rongga tubuh; hemipenis di pangkal ekor.';}
+  [-1,1].forEach(s=>{oval(c,360+s*70,150,20,34,0,'#f0e8c8',OUT,2);tubeP(c,[[360+s*70,185],[360+s*40,290],[360,350]],5,'#e8e0f0',OUT);st(360+s*70,150,28,'Testis (internal)','Terletak di rongga tubuh.');});tubeP(c,[[360,350],[360,410]],20,PINK,OUT);st(360,385,20,'Penis tunggal','Pada kura-kura berada di dasar kloaka dan keluar saat kawin.');return'Testis internal; satu penis di dasar kloaka.';
+}
+inits.repro=function(){
+  const cv=$('#rep-cv'),c=cv.getContext('2d'),info=$('#rep-info');let k='sapi',sex='f',spots=[];
+  fillSelect($('#rep-sp'),Object.entries(RSP).map(([a,b])=>[a,b.n]));
+  $('#rep-sex').innerHTML='<button class="b on" data-s="f">Betina</button> <button class="b" data-s="m">Jantan</button>';
+  $('#rep-table').innerHTML='<tr><th>Hewan</th><th>Pola siklus</th><th>Lama siklus</th><th>Estrus</th><th>Ovulasi</th><th>Gestasi/inkubasi</th><th>Plasenta</th><th>Penis</th></tr>'+Object.entries(RSP).map(([a,b])=>`<tr data-k="${a}">${b.row.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('');
+  function draw(){
+    spots=[];const note=(sex==='f'?drawFemale:drawMale)(c,k,spots);
+    $$('#rep-table tr[data-k]').forEach(r=>r.classList.toggle('sel',r.dataset.k===k));
+    info.innerHTML=`<h2>${RSP[k].n} — ${sex==='f'?'betina':'jantan'}</h2><p>${note}</p>
+    <h3>Ringkasan</h3><p><b>Siklus:</b> ${RSP[k].row[1]}<br><b>Gestasi/inkubasi:</b> ${RSP[k].row[5]}<br><b>Plasenta:</b> ${RSP[k].row[6]}<br><b>Penis:</b> ${RSP[k].row[7]}</p>
+    <h3>Bagian yang bisa diklik</h3><div class="chips">${[...new Set(spots.map(s=>s[3]))].map(n=>`<span class="chip" data-n="${n}">${n}</span>`).join('')}</div>
+    <div class="imgslot"><img src="assets/repro/${k}-${sex==='f'?'betina':'jantan'}.jpg" alt="" onerror="this.remove()"></div>
+    <p class="note">Diagram skematis. Letakkan foto/atlas yang kamu punya hak pakainya di <code>assets/repro/${k}-${sex==='f'?'betina':'jantan'}.jpg</code> agar tampil di sini. Rujuk atlas untuk bentuk sebenarnya.</p>`;
+    $$('.chip',info).forEach(ch=>ch.onclick=()=>{const s=spots.find(x=>x[3]===ch.dataset.n);if(s)show(s);});
+  }
+  function show(s){info.innerHTML=`<button class="b" id="rback">← Ringkasan</button><h2 style="margin-top:10px">${s[3]}</h2><p>${s[4]}</p>`;$('#rback',info).onclick=draw;}
+  $('#rep-sp').onchange=e=>{k=e.target.value;draw();};
+  $('#rep-sex').onclick=e=>{const s=e.target.dataset.s;if(!s)return;sex=s;$$('#rep-sex button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));draw();};
+  $('#rep-table').onclick=e=>{const tr=e.target.closest('tr[data-k]');if(tr){k=tr.dataset.k;$('#rep-sp').value=k;draw();}};
+  canvasSpots(cv,()=>spots,show);
+  draw();
+};
+
+/* ---------- tentang ---------- */
+$('#about').innerHTML=`<h2>WonderLearn Vet</h2>
+<p>Atlas interaktif untuk mahasiswa kedokteran hewan: anatomi dan otot 3D (sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular), anatomi mata 3D, mikroskop parasit virtual, histopatologi, embriologi, dan perbandingan reproduksi.</p>
+<h2>Catatan penting</h2>
+<p>Semua model dan gambar dibuat dengan kode (skematis) agar bebas hak cipta. Materi berupa ringkasan belajar dan nilai (mis. protein, lama gestasi) berupa perkiraan dari literatur umum. Selalu cocokkan dengan atlas dan buku rujukan (König &amp; Liebich, Dyce, Miller's Anatomy of the Dog, buku parasitologi dan patologi veteriner). Informasi injeksi hanya untuk belajar anatomi, bukan petunjuk dosis atau tindakan medis.</p>
+<h2>Menambah foto atlas sendiri</h2>
+<p>Tempatkan foto/gambar yang kamu punya hak pakainya di folder <code>assets/repro/</code> dengan nama <code>sapi-betina.jpg</code>, <code>anjing-jantan.jpg</code>, dan seterusnya (kunci: sapi, kambing, kuda, babi, anjing, kucing, ayam, kura, ular). Gambar akan tampil otomatis di tab Reproduksi.</p>
+<h2>Menjalankan</h2>
+<p>Buka <code>index.html</code> di browser (butuh internet untuk memuat Three.js), atau unggah ke GitHub Pages. Lihat README untuk langkahnya.</p>`;
+
+inits.anatomi();done.anatomi=1;
+</script>
+</body>
+</html>
