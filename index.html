@@ -45,6 +45,17 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid 
 .imgslot{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.imgslot img{max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--line)}
 input[type=range]{accent-color:var(--ac)}
 .about{max-width:820px}.about h2{margin-top:22px}
+.scope{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;padding:14px;align-items:center}
+@media(max-width:860px){.scope{grid-template-columns:1fr}}
+#mic-svg{width:100%;max-width:300px;margin:0 auto;touch-action:none;user-select:none}.knob{cursor:grab}
+.hot{margin-top:10px;padding:8px 10px;border-left:3px solid var(--ac);background:#ffffff08;border-radius:0 8px 8px 0}.hot p{margin:4px 0 0}
+.tsum{margin-top:14px}.tsum li{margin:3px 0}
+.tquiz{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.tquiz h4,.tsrc h4{margin:0 0 6px}
+.qo{display:block;width:100%;text-align:left;margin:4px 0;white-space:normal}.qo.ok{border-color:#4cc38a!important;background:#143a2b!important}.qo.bad{border-color:#e5484d!important;background:#3a1417!important}
+.tsrc{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--mut,#8fa3b8)}.tsrc ol{padding-left:18px;margin:4px 0}.tsrc li{margin:3px 0}
+.tbl{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0}.tbl td,.tbl th{border:1px solid var(--line);padding:4px 6px}.kv{font-size:12px;color:#9fb3c8}
+#foot{max-width:1100px;margin:30px auto 20px;padding:14px 16px;border-top:1px solid var(--line);font-size:12px;color:#8fa3b8}#foot h4{margin:0 0 6px;color:#c9d6e3}#foot ul{padding-left:18px;margin:4px 0 10px}#foot li{margin:2px 0}
+#foot{max-width:1200px;margin:24px auto 30px;padding:0 16px;font-size:13px;color:var(--mut,#9fb0c3)}#foot summary{cursor:pointer;font-weight:600;color:var(--tx,#e6edf5);margin-bottom:8px}#foot ul{margin:4px 0 12px 18px;padding:0}#foot h4{margin:12px 0 2px;color:var(--ac)}
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
@@ -59,6 +70,9 @@ input[type=range]{accent-color:var(--ac)}
 <button data-tab="embrio">Embriologi</button>
 <button data-tab="repro">Reproduksi</button>
 <button data-tab="darah">Ulas Darah</button>
+<button data-tab="sakit">Mata Sakit</button>
+<button data-tab="farma">Farmakologi</button>
+<button data-tab="imun">Imunologi</button>
 <button data-tab="tentang">Tentang</button>
 </nav>
 </header>
@@ -88,16 +102,15 @@ input[type=range]{accent-color:var(--ac)}
 </div><aside class="panel" id="eye-info"></aside></div></section>
 
 <section class="tab" id="tab-mikro"><div class="layout"><div>
-<div class="stage" style="padding:16px"><canvas id="mic-cv" class="flat round" width="640" height="640"></canvas></div>
+<div class="stage scope"><canvas id="mic-cv" class="flat round" width="640" height="640"></canvas>
+<svg id="mic-svg" viewBox="0 0 320 440"></svg></div>
 <div class="bar" style="border:1px solid var(--line);border-radius:0 0 12px 12px">
 <label>Preparat <select id="mic-slide"></select></label>
-<span id="mic-obj"></span>
-<label>Fokus <input type="range" id="mic-focus" min="0" max="100" value="10"></label>
-<button class="b" id="mic-auto">Fokus otomatis</button>
-<button class="b" id="mic-hint">Petunjuk</button>
+<button class="b" id="mic-obj"></button><button class="b" id="mic-oil">Minyak imersi</button>
+<button class="b" id="mic-auto">Fokus otomatis</button><button class="b" id="mic-hint">Petunjuk</button>
 <label><input type="checkbox" id="mic-lbl"> Label</label>
 </div>
-<p class="muted">Seret preparat untuk menggeser meja objek. Ganti lensa objektif lalu fokuskan ulang. Klik objek untuk identifikasi.</p>
+<p id="mic-msg" class="muted"></p>
 </div><aside class="panel" id="mic-info"></aside></div></section>
 
 <section class="tab" id="tab-histo"><div class="layout"><div>
@@ -126,14 +139,20 @@ input[type=range]{accent-color:var(--ac)}
 <p class="muted">Seret untuk menggeser ulas darah (Wright-Giemsa, ± 1000×). Mode Belajar: klik sel. Kuis: tebak sel. Hitung: latihan hitung jenis leukosit.</p>
 </div><aside class="panel" id="bl-info"></aside></div></section>
 
+<section class="tab" id="tab-sakit"></section>
+<section class="tab" id="tab-farma"></section>
+<section class="tab" id="tab-imun"></section>
 <section class="tab" id="tab-tentang"><div class="about" id="about"></div></section>
 
 </main>
+<footer id="foot"><details open><summary>Sumber &amp; rujukan</summary><div id="srcs"></div></details>
+<p class="muted">© 101daily · drh. Alfathitamara Oktalia Sasti, M.Si.</p></footer>
 <div id="tip"></div>
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
+const L=s=>s;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
@@ -489,6 +508,8 @@ const EYE_SP={
   note:'Pupil horizontal; mata di sisi kepala untuk mengawasi predator di sekeliling.'},
  kuda:{n:'Kuda',lat:'Equus ferus caballus',pupil:'horiz2',iris:0x4a2e1a,tap:0x4fb8c4,tapT:'tapetum fibrosum',rect:true,retr:true,
   note:'Mata terbesar di antara mamalia darat. Pupil oval horizontal dengan granula iridica (corpora nigra) di tepi atas dan bawah pupil.'},
+ manusia:{n:'Manusia',lat:'Homo sapiens',pupil:'round',iris:0x5b7fa6,tap:null,rect:true,retr:false,
+  note:'Pupil bulat, mata menghadap ke depan (penglihatan binokular). Tidak ada tapetum lucidum; fovea di makula memberi ketajaman tinggi. Penglihatan warna trikromatik (tiga jenis sel kerucut). Retina memiliki pembuluh darah sendiri, sehingga dapat dinilai pada pemeriksaan funduskopi (mis. retinopati diabetik).'},
  ayam:{n:'Ayam',lat:'Gallus gallus domesticus',pupil:'round',iris:0xd9822b,tap:null,rect:true,retr:false,pecten:true,
   note:'Retina tanpa pembuluh darah; nutrisi disuplai oleh pecten oculi. Penglihatan warna tajam (tetrakromatik). Tidak memiliki tapetum.'},
  kura:{n:'Kura-kura',lat:'Testudines (model generik)',pupil:'round',iris:0x5a4a2a,tap:null,rect:true,retr:true,
@@ -715,17 +736,79 @@ function mkSlide(key){
   return {bg,spec};
 }
 inits.mikro=function(){
-  const cv=$('#mic-cv'),c=cv.getContext('2d'),info=$('#mic-info');
+  const cv=$('#mic-cv'),c=cv.getContext('2d'),info=$('#mic-info'),svg=$('#mic-svg');
   fillSelect($('#mic-slide'),Object.entries(SLIDES).map(([k,s])=>[k,s.t]));
-  let key='anjing',slide=mkSlide(key),obj=10,cx=1000,cy=1000,sel=null,labels=false,focus=10;
+  let key='anjing',slide=mkSlide(key),obj=10,cx=1000,cy=1000,sel=null,labels=false,F=8,lamp=70,dia=55,oil=false,found=new Set();
+  const TG={4:40,10:40.8,40:41.6,100:42.4},DOF={4:3,10:1.6,40:.7,100:.35};
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const blur=()=>{const d=Math.abs(F-TG[obj]);let b=Math.max(0,d-DOF[obj])*(.6+obj*.05);if(obj===100&&!oil)b+=5;return Math.min(16,b);};
   $('#mic-obj').innerHTML=[4,10,40,100].map(o=>`<button class="b${o===obj?' on':''}" data-o="${o}">${o}×</button>`).join(' ');
-  function rbc(x,y,p){c.fillStyle=p?'#dd9aa0':'#dd9aa0';c.beginPath();c.arc(x,y,3.7,0,7);c.fill();if(PPU[obj]>.8){c.fillStyle='#eab8bc';c.beginPath();c.arc(x,y,1.6,0,7);c.fill();}}
+  const OC={4:'#c0392b',10:'#d4ac0d',40:'#2e6fbf',100:'#e8e8e8'},XS={4:96,10:122,40:152,100:178};
+
+  /* ---------- gambar mikroskop (SVG) ---------- */
+  const NS='http://www.w3.org/2000/svg';
+  svg.innerHTML=`
+   <defs><radialGradient id="lg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6c8"/><stop offset="1" stop-color="#ffd86a" stop-opacity="0"/></radialGradient>
+   <linearGradient id="metal" x1="0" x2="1"><stop offset="0" stop-color="#2c3746"/><stop offset=".5" stop-color="#4a5a70"/><stop offset="1" stop-color="#2c3746"/></linearGradient></defs>
+   <path d="M30 404 h240 a12 12 0 0 1 12 12 v6 h-264 v-6 a12 12 0 0 1 12 -12z" fill="#1f2833"/>
+   <ellipse id="lampGlow" cx="132" cy="402" rx="34" ry="9" fill="url(#lg)"/>
+   <rect x="100" y="394" width="64" height="10" rx="4" fill="#3a4658"/>
+   <path d="M236 396 C300 340 306 170 224 100" fill="none" stroke="#3b4a5e" stroke-width="42" stroke-linecap="round"/>
+   <path d="M236 396 C300 340 306 170 224 100" fill="none" stroke="#4c5d75" stroke-width="30" stroke-linecap="round" opacity=".55"/>
+   <path d="M96 66 L232 78 L238 112 L100 118 Z" fill="url(#metal)"/>
+   <g transform="rotate(-12 118 44)"><rect x="102" y="6" width="32" height="64" rx="7" fill="#151c26"/><rect x="98" y="4" width="40" height="10" rx="4" fill="#0c1118"/><ellipse cx="118" cy="9" rx="14" ry="3.5" fill="#7a8da6" opacity=".6"/></g>
+   <rect x="116" y="112" width="40" height="20" fill="#303d4f"/>
+   <ellipse cx="138" cy="134" rx="62" ry="13" fill="#27323f" stroke="#18202b"/>
+   <g id="gObj"></g>
+   <g id="gStage"><rect x="52" y="226" width="188" height="12" rx="3" fill="#18212c"/><rect x="52" y="226" width="188" height="3" fill="#33425a"/>
+     <g id="gSlide"><rect x="96" y="217" width="98" height="10" rx="1" fill="#cfe6f2" opacity=".9"/><rect x="128" y="217.5" width="30" height="9" fill="#e6d29a" opacity=".85"/></g></g>
+   <rect x="112" y="246" width="52" height="22" rx="3" fill="#2b3745"/><ellipse cx="138" cy="246" rx="22" ry="4" fill="#1b232d"/>
+   <g id="gDia" class="knob"><title>Diafragma</title><rect x="150" y="254" width="52" height="6" rx="3" fill="#8aa0bb"/><circle cx="204" cy="257" r="6" fill="#aebfd4"/></g>
+   <g id="kCoarse" class="knob"><title>Kenop fokus kasar</title><circle cx="256" cy="246" r="27" fill="#566579" stroke="#222c39" stroke-width="2"/>
+     ${[0,45,90,135].map(a=>`<line x1="256" y1="${246-25}" x2="256" y2="${246+25}" stroke="#27323f" stroke-width="4" transform="rotate(${a} 256 246)"/>`).join('')}<circle cx="256" cy="246" r="17" fill="#6b7d94"/></g>
+   <g id="kFine" class="knob"><title>Kenop fokus halus</title><circle cx="256" cy="246" r="13" fill="#9fb3cc" stroke="#2c3a4c" stroke-width="2"/>
+     ${[0,60,120].map(a=>`<line x1="256" y1="${246-12}" x2="256" y2="${246+12}" stroke="#4a5d77" stroke-width="3" transform="rotate(${a} 256 246)"/>`).join('')}<circle cx="256" cy="246" r="4" fill="#4a5d77"/></g>
+   <g id="kX" class="knob"><title>Geser preparat kiri-kanan (X)</title><circle cx="226" cy="316" r="14" fill="#8a97a8" stroke="#252f3c" stroke-width="2"/>${[0,60,120].map(a=>`<line x1="226" y1="303" x2="226" y2="329" stroke="#3b4859" stroke-width="3" transform="rotate(${a} 226 316)"/>`).join('')}</g>
+   <g id="kY" class="knob"><title>Geser preparat maju-mundur (Y)</title><circle cx="266" cy="316" r="14" fill="#8a97a8" stroke="#252f3c" stroke-width="2"/>${[0,60,120].map(a=>`<line x1="266" y1="303" x2="266" y2="329" stroke="#3b4859" stroke-width="3" transform="rotate(${a} 266 316)"/>`).join('')}</g>
+   <g id="kLamp" class="knob"><title>Kecerahan lampu</title><circle cx="56" cy="410" r="11" fill="#7a8798" stroke="#202a36" stroke-width="2"/><line x1="56" y1="401" x2="56" y2="410" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
+   <g font-size="9" fill="#b9c6d8" text-anchor="middle"><text x="256" y="288">Fokus</text><text x="226" y="340">X</text><text x="266" y="340">Y</text><text x="56" y="432">Cahaya</text><text x="180" y="280">Diafragma</text></g>`;
+  const $s=id=>svg.querySelector('#'+id);
+  let rot={kCoarse:0,kFine:0,kX:0,kY:0,kLamp:0};
+  function rotary(id,cx0,cy0,cb){
+    const g=$s(id),circ=g.querySelector('circle');let last=null,cen=null;
+    g.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();g.setPointerCapture(e.pointerId);const r=circ.getBoundingClientRect();cen=[r.left+r.width/2,r.top+r.height/2];last=Math.atan2(e.clientY-cen[1],e.clientX-cen[0]);});
+    g.addEventListener('pointermove',e=>{if(last==null)return;const a=Math.atan2(e.clientY-cen[1],e.clientX-cen[0]);let d=a-last;if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;last=a;const dg=d*180/Math.PI;rot[id]+=dg;g.setAttribute('transform',`rotate(${rot[id]} ${cx0} ${cy0})`);cb(dg);render();});
+    const end=()=>{last=null;};g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);
+    g.addEventListener('wheel',e=>{e.preventDefault();const dg=-Math.sign(e.deltaY)*18;rot[id]+=dg;g.setAttribute('transform',`rotate(${rot[id]} ${cx0} ${cy0})`);cb(dg);render();},{passive:false});
+  }
+  rotary('kCoarse',256,246,d=>{F=clamp(F+d/360*20,0,100);});
+  rotary('kFine',256,246,d=>{F=clamp(F+d/360*2,0,100);});
+  rotary('kX',226,316,d=>{cx=clamp(cx+d/360*300/PPU[obj],100,WORLD-100);});
+  rotary('kY',266,316,d=>{cy=clamp(cy+d/360*300/PPU[obj],100,WORLD-100);});
+  rotary('kLamp',56,410,d=>{lamp=clamp(lamp+d/270*100,0,100);});
+  (function(){const g=$s('gDia');let drag=null;
+    g.addEventListener('pointerdown',e=>{e.stopPropagation();g.setPointerCapture(e.pointerId);drag={x:e.clientX,d:dia};});
+    g.addEventListener('pointermove',e=>{if(!drag)return;const sc=svg.getBoundingClientRect().width/320;dia=clamp(drag.d+(e.clientX-drag.x)/sc/30*100,0,100);render();});
+    g.addEventListener('pointerup',()=>{drag=null;});})();
+  svg.addEventListener('click',e=>{const t=e.target.closest('[data-o]');if(t)setObj(+t.dataset.o);});
+  function syncSvg(){
+    const go=$s('gObj');
+    go.innerHTML=[4,10,40,100].map(o=>{const act=o===obj,h=act?44:28,x=XS[o];
+      return `<g data-o="${o}" style="cursor:pointer"><title>${o}×</title><rect x="${x-8}" y="138" width="16" height="${h}" rx="3" fill="${act?'#4d5d73':'#35424f'}" stroke="#151c25"/><rect x="${x-8}" y="${138+h-9}" width="16" height="9" rx="2" fill="${OC[o]}"/><text x="${x}" y="${138+h+11}" font-size="9" fill="${act?'#fff':'#8a9bb0'}" text-anchor="middle">${o}×</text></g>`;}).join('');
+    $s('gStage').setAttribute('transform',`translate(0 ${(-F/100*8).toFixed(2)})`);
+    $s('gSlide').setAttribute('transform',`translate(${((cx-1000)/WORLD*70).toFixed(1)} ${((cy-1000)/WORLD*0).toFixed(1)})`);
+    $s('lampGlow').setAttribute('opacity',(lamp/100).toFixed(2));
+    $s('gDia').setAttribute('transform',`translate(${(-dia/100*30).toFixed(1)} 0)`);
+  }
+
+  /* ---------- tampilan lensa okuler ---------- */
+  function rbc(x,y){c.fillStyle='#dd9aa0';c.beginPath();c.arc(x,y,3.7,0,7);c.fill();if(PPU[obj]>.8){c.fillStyle='#eab8bc';c.beginPath();c.arc(x,y,1.6,0,7);c.fill();}}
   function render(){
     const W=cv.width,pp=PPU[obj],S=SLIDES[key];
     c.setTransform(1,0,0,1,0,0);
     c.fillStyle={feces:'#d9d5a6',blood:'#f3dcdc',skin:'#ebe4d3'}[S.bg];c.fillRect(0,0,W,W);
     c.save();c.translate(W/2,W/2);c.scale(pp,pp);c.translate(-cx,-cy);
-    const vr=W/2/pp*1.25;const vis=(o,m=0)=>Math.abs(o.x-cx)<vr+m&&Math.abs(o.y-cy)<vr+m;
+    const vr=W/2/pp*1.25,vis=(o,m=0)=>Math.abs(o.x-cx)<vr+m&&Math.abs(o.y-cy)<vr+m;
     slide.bg.forEach(o=>{
       if(!vis(o,150))return;
       if(o.k==='rbc'){if(pp>.3)rbc(o.x,o.y);}
@@ -737,20 +820,31 @@ inits.mikro=function(){
     slide.spec.forEach(s=>{
       if(!vis(s,200))return;
       c.save();c.translate(s.x,s.y);c.rotate(s.rot);DRAW[s.type](c,s);c.restore();
-      if(s===sel){c.strokeStyle='#4cc9a6';c.lineWidth=3/pp;c.beginPath();c.arc(s.x,s.y,PARA[s.type].hitR+6/pp,0,7);c.stroke();}
+      if(s===sel||found.has(s)){c.strokeStyle=s===sel?'#4cc9a6':'rgba(76,201,166,.5)';c.lineWidth=3/pp;c.beginPath();c.arc(s.x,s.y,PARA[s.type].hitR+6/pp,0,7);c.stroke();}
     });
     c.restore();
-    if(labels){c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.font='13px sans-serif';slide.spec.forEach(s=>{const x=(s.x-cx)*pp+W/2,y=(s.y-cy)*pp+W/2-PARA[s.type].hitR*pp-6;if(x>0&&x<W&&y>0&&y<W){const t=PARA[s.type].n;c.strokeText(t,x-30,y);c.fillText(t,x-30,y);}});}
-    const bar={4:500,10:200,40:50,100:20}[obj];c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.fillRect(24,W-34,bar*pp,5);c.font='13px sans-serif';c.strokeText(bar+' µm',24,W-42);c.fillText(bar+' µm',24,W-42);
-    const d=Math.max(0,Math.abs(focus-FT[obj])-2),b=d*(.12+obj*.012);cv.style.filter=`blur(${b.toFixed(1)}px)`;
+    if(labels){c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.font='13px sans-serif';slide.spec.forEach(s=>{const x=(s.x-cx)*pp+W/2,y=(s.y-cy)*pp+W/2-PARA[s.type].hitR*pp-6;if(x>0&&x<W&&y>0&&y<W){const t=L(PARA[s.type].n);c.strokeText(t,x-30,y);c.fillText(t,x-30,y);}});}
+    /* penunjuk okuler + vinyet */
+    c.strokeStyle='rgba(20,20,20,.65)';c.lineWidth=2;c.beginPath();c.moveTo(W/2-4,W/2-120);c.lineTo(W/2,W/2-70);c.lineTo(W/2+4,W/2-120);c.stroke();
+    const bar={4:500,10:200,40:50,100:20}[obj];c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.fillRect(W/2-bar*pp/2,W-40,bar*pp,5);c.font='13px sans-serif';c.textAlign='center';c.strokeText(bar+' µm',W/2,W-48);c.fillText(bar+' µm',W/2,W-48);c.textAlign='left';
+    const g=c.createRadialGradient(W/2,W/2,W*.32,W/2,W/2,W/2);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.85,'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,.9)');c.fillStyle=g;c.fillRect(0,0,W,W);
+    const br=.12+lamp/100*1.05,ct=1.35-dia/100*.6;
+    cv.style.filter=`blur(${blur().toFixed(1)}px) brightness(${br.toFixed(2)}) contrast(${ct.toFixed(2)})`;
+    syncSvg();
+    $('#mic-oil').style.display=obj===100?'':'none';$('#mic-oil').classList.toggle('on',oil);
   }
+  function setObj(o){obj=o;$$('#mic-obj button').forEach(b=>b.classList.toggle('on',+b.dataset.o===o));$('#mic-msg').textContent='';render();}
+
+  /* ---------- panel keterangan ---------- */
   function intro(){
     const S=SLIDES[key];
     info.innerHTML=`<h2>${S.t}</h2><p class="muted">Pewarnaan/persiapan: ${S.stain}</p>
-    <h3>Cara pakai</h3><p>1) Mulai dari lensa 4×/10×, fokuskan dengan slider. 2) Seret preparat untuk mencari objek. 3) Naikkan perbesaran ke 40×/100× untuk melihat detail dan fokus ulang. 4) Klik objek untuk identifikasi.</p>
+    <h3>Cara memakai mikroskop</h3>
+    <p>1) Mulai dari lensa 4× atau 10×. 2) Putar kenop fokus kasar (besar) sampai gambar hampir jelas, lalu kenop halus (kecil) sampai tajam. 3) Putar kenop X dan Y untuk menggeser preparat, atau seret langsung gambarnya. 4) Ganti lensa lewat revolver (klik lensa di gambar mikroskop) dan fokuskan ulang dengan kenop halus. 5) Atur cahaya dan diafragma agar kontras pas. 6) Pada lensa 100× teteskan minyak imersi. 7) Klik objek yang sudah tajam untuk identifikasi.</p>
+    <h3>Misi</h3><p>Temukan semua objek parasit pada preparat ini: <b>${found.size}</b> / ${slide.spec.length}</p>
     <h3>Parasit pada preparat ini</h3><div class="chips">${[...new Set(S.list.map(l=>l[0]))].map(k=>`<span class="chip" data-k="${k}">${PARA[k].n}</span>`).join('')}</div>
     <p class="note">Gambar dibuat secara skematis dengan kode; ukuran relatif mengikuti data literatur. Bukan pengganti foto preparat asli. Pengobatan sesuai resep dokter hewan.</p>`;
-    $$('.chip',info).forEach(ch=>ch.onclick=()=>{const t=slide.spec.find(s=>s.type===ch.dataset.k);if(t){sel=t;show(t);cx=t.x;cy=t.y;render();}});
+    $$('.chip',info).forEach(ch=>ch.onclick=()=>{const t=slide.spec.find(s=>s.type===ch.dataset.k);if(t){sel=t;found.add(t);show(t);cx=t.x;cy=t.y;render();}});
   }
   function show(s){
     const p=PARA[s.type];
@@ -758,26 +852,28 @@ inits.mikro=function(){
     <h3>Ukuran</h3><p>${p.size}</p><h3>Inang</h3><p>${p.host}</p><h3>Ciri khas</h3><p>${p.look}</p><h3>Diagnosis</h3><p>${p.dx}</p><p class="note">${p.note}</p>`;
     $('#mback',info).onclick=()=>{sel=null;intro();render();};
   }
-  function setSlide(k){key=k;slide=mkSlide(k);cx=1000;cy=1000;sel=null;intro();render();}
+  function setSlide(k){key=k;slide=mkSlide(k);cx=1000;cy=1000;sel=null;oil=false;found=new Set();$('#mic-msg').textContent='';intro();render();}
   $('#mic-slide').onchange=e=>setSlide(e.target.value);
-  $('#mic-obj').onclick=e=>{const o=e.target.dataset.o;if(!o)return;obj=+o;$$('#mic-obj button').forEach(b=>b.classList.toggle('on',b.dataset.o===o));render();};
-  $('#mic-focus').oninput=e=>{focus=+e.target.value;render();};
-  $('#mic-auto').onclick=()=>{focus=FT[obj];$('#mic-focus').value=focus;render();};
+  $('#mic-obj').onclick=e=>{const o=e.target.dataset.o;if(o)setObj(+o);};
+  $('#mic-oil').onclick=()=>{oil=!oil;render();};
+  $('#mic-auto').onclick=()=>{F=TG[obj];if(obj===100)oil=true;rot.kCoarse+=0;render();};
   $('#mic-hint').onclick=()=>{let best=null,bd=1e18;slide.spec.forEach(s=>{const d=(s.x-cx)**2+(s.y-cy)**2;if(d>2500&&d<bd){bd=d;best=s;}});if(best){cx=best.x+(Math.random()-.5)*60;cy=best.y+(Math.random()-.5)*60;render();}};
   $('#mic-lbl').onchange=e=>{labels=e.target.checked;render();};
   let drag=null;
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cx,cy,moved:false};});
   cv.addEventListener('pointermove',e=>{if(!drag)return;const r=cv.getBoundingClientRect(),k=cv.width/r.width,dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(dx*dx+dy*dy>16)drag.moved=true;
-    cx=Math.min(WORLD,Math.max(0,drag.cx-dx*k/PPU[obj]));cy=Math.min(WORLD,Math.max(0,drag.cy-dy*k/PPU[obj]));render();});
+    cx=clamp(drag.cx-dx*k/PPU[obj],0,WORLD);cy=clamp(drag.cy-dy*k/PPU[obj],0,WORLD);render();});
+  cv.addEventListener('wheel',e=>{e.preventDefault();F=clamp(F-Math.sign(e.deltaY)*.25,0,100);render();},{passive:false});
   cv.addEventListener('pointerup',e=>{
     if(drag&&!drag.moved){const r=cv.getBoundingClientRect(),k=cv.width/r.width,pp=PPU[obj];
       const wx=cx+((e.clientX-r.left)*k-cv.width/2)/pp,wy=cy+((e.clientY-r.top)*k-cv.width/2)/pp;
       let best=null,bd=1e18;slide.spec.forEach(s=>{const d=Math.hypot(s.x-wx,s.y-wy);if(d<PARA[s.type].hitR+8/pp&&d<bd){bd=d;best=s;}});
-      if(best){sel=best;show(best);}else{
-        const bub=slide.bg.find(o=>o.k==='bubble'&&Math.hypot(o.x-wx,o.y-wy)<o.R);
-        sel=null;if(bub)info.innerHTML=`<button class="b" id="mback">← Preparat</button><h2 style="margin-top:10px">Gelembung udara (artefak)</h2><p>Lingkaran dengan tepi tebal gelap dan pantulan terang. Bukan parasit; sering membingungkan pemula.</p>`;
-        if(bub)$('#mback',info).onclick=()=>{intro();};
-      }
+      if(blur()>2.5){$('#mic-msg').textContent='Gambar masih buram. Putar kenop fokus dulu agar objek terlihat jelas.';}
+      else{$('#mic-msg').textContent='';
+        if(best){sel=best;found.add(best);show(best);}else{
+          const bub=slide.bg.find(o=>o.k==='bubble'&&Math.hypot(o.x-wx,o.y-wy)<o.R);
+          sel=null;if(bub){info.innerHTML=`<button class="b" id="mback">← Preparat</button><h2 style="margin-top:10px">Gelembung udara (artefak)</h2><p>Lingkaran dengan tepi tebal gelap dan pantulan terang. Bukan parasit; sering membingungkan pemula.</p>`;$('#mback',info).onclick=()=>{intro();};}
+        }}
       render();}
     drag=null;});
   intro();render();
@@ -1128,6 +1224,10 @@ const BLD={
   mid:{neut:40,lymph:52,mono:2,eos:5,baso:1},ref:{neut:[30,48],lymph:[50,70],mono:[0,4],eos:[1,8],baso:[0,1]},
   par:{k:'anaplasma',txt:'Anaplasma: bintik biru gelap (badan inklusi) di tepi eritrosit.'},
   notes:{lymph:'Limfosit adalah leukosit terbanyak pada kambing sehat.'}},
+ manusia:{n:'Manusia',rbc:{r:18,pal:.33,txt:'Diameter ± 7,5 µm, bikonkaf dengan central pallor ± sepertiga diameter.'},wbc:['neut','lymph','mono','eos','baso'],plt:'plt',eg:'round',
+  mid:{neut:60,lymph:30,mono:6,eos:3,baso:1},ref:{neut:[40,75],lymph:[20,45],mono:[2,10],eos:[1,6],baso:[0,1]},
+  par:{k:'plasmodium',txt:'Plasmodium (malaria): bentuk cincin (trofozoit muda) dengan inti kromatin merah dan sitoplasma biru di dalam eritrosit.'},
+  notes:{neut:'Neutrofil segmen 2–5 lobus adalah leukosit terbanyak pada manusia dewasa.',lymph:'Limfosit kecil dengan inti bulat padat dan sitoplasma sedikit.',eos:'Granula oranye-merah, inti bilobus.',baso:'Sangat jarang; granula ungu tua menutupi inti.',plt:'Trombosit ± 150–400 ribu/µL; 1 trombosit per 10–20 eritrosit.'}},
  ayam:{n:'Ayam',rbc:{r:30,bird:true,txt:'Eritrosit oval berinti, ± 11–12 × 6–7 µm, inti bulat-oval padat di tengah.'},wbc:['het','lymph','mono','eos','baso'],plt:'thr',eg:'round',
   mid:{het:30,lymph:57,mono:7,eos:4,baso:2},ref:{het:[20,40],lymph:[45,70],mono:[5,10],eos:[1,4],baso:[1,4]},
   par:{k:'haemo',txt:'Haemoproteus: gametosit berbentuk halter melingkari inti eritrosit dengan butir pigmen kecoklatan.'},
@@ -1173,6 +1273,7 @@ function drawBlood(c,o,S){
       if(o.par){
         const k=S.par.k;
         if(k==='babesia'){[-1,1].forEach(s=>{c.save();c.rotate(s*.6);c.fillStyle='#6f86c4';c.strokeStyle='#3b4a8a';c.lineWidth=.8;c.beginPath();c.ellipse(R*.3,0,R*.32*S.par.sz,R*.2*S.par.sz,0,0,7);c.fill();c.stroke();dot(R*.4,0,R*.045,'#8d1c4a');c.restore();});}
+        else if(k==='plasmodium'){c.strokeStyle='#4a5db0';c.lineWidth=R*.1;c.beginPath();c.arc(R*.2,0,R*.24,0,7);c.stroke();dot(R*.42,-R*.05,R*.09,'#b0243c');}
         else if(k==='anaplasma'){for(let i=0;i<2;i++){const a=sr()*6.28;dot(Math.cos(a)*R*.7,Math.sin(a)*R*.7,R*.14,'#2a2468');}}
         else if(k==='myco'){for(let i=0;i<5;i++){const a=sr()*6.28;dot(Math.cos(a)*R*.92,Math.sin(a)*R*.92,R*.08,'#3b4a9a');}}
       }
@@ -1350,15 +1451,652 @@ inits.darah=function(){
   build();
 };
 
+/* ---------- mesin modul materi: kanvas + panel + ringkasan + kuis + sumber ---------- */
+const CW=700,CH=520;
+function g2(c,x,y,r,a,b){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
+function T2(c,s,x,y,o={}){c.save();c.font=`${o.b?'700 ':''}${o.s||13}px Inter,system-ui,sans-serif`;c.fillStyle=o.c||'#dfe8f2';c.textAlign=o.a||'left';c.textBaseline=o.v||'alphabetic';
+  const ls=L(s).split('\n'),lh=(o.s||13)*1.2,y0=o.v==='middle'?y-(ls.length-1)*lh/2:y;ls.forEach((l,i)=>c.fillText(l,x,y0+i*lh));c.restore();}
+function RR(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r);}
+function ARW(c,x1,y1,x2,y2,col,w=2){const a=Math.atan2(y2-y1,x2-x1);c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-5*Math.cos(a),y2-5*Math.sin(a));c.stroke();c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-10*Math.cos(a-.42),y2-10*Math.sin(a-.42));c.lineTo(x2-10*Math.cos(a+.42),y2-10*Math.sin(a+.42));c.closePath();c.fill();c.restore();}
+function BOX(c,x,y,w,h,label,col,o={}){c.save();RR(c,x,y,w,h,o.r||8);c.fillStyle=col;c.globalAlpha=o.al||1;c.fill();c.globalAlpha=1;if(o.st){c.strokeStyle=o.st;c.lineWidth=o.lw||2;c.stroke();}c.restore();T2(c,label,x+w/2,y+h/2,{a:'center',v:'middle',s:o.s||12,c:o.tc||'#fff',b:1});}
+function DOT(c,x,y,r,col,st){c.beginPath();c.arc(x,y,r,0,6.283);c.fillStyle=col;c.fill();if(st){c.strokeStyle=st;c.lineWidth=1.2;c.stroke();}}
+function poly(pts,p){const n=pts.length-1,f=Math.min(Math.max(p,0),.9999)*n,i=Math.floor(f),t=f-i;return [pts[i][0]+(pts[i+1][0]-pts[i][0])*t,pts[i][1]+(pts[i+1][1]-pts[i][1])*t];}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const SRC_ALL=[];
+
+function topicTab(o){
+  const sec=$('#tab-'+o.id);
+  sec.innerHTML=`<div class="layout"><div><div class="stage"><canvas id="${o.id}-cv" class="flat" width="${CW}" height="${CH}"></canvas><div class="bar" id="${o.id}-bar"></div></div><p class="muted" id="${o.id}-hint">${o.hint||'Klik bagian pada gambar untuk keterangan.'}</p></div>
+  <aside class="panel" id="${o.id}-info"><div id="${o.id}-dyn"></div><details open class="tsum"><summary>Ringkasan</summary><ul id="${o.id}-sum"></ul></details><div id="${o.id}-quiz" class="tquiz"></div><div class="tsrc"><h4>Sumber</h4><ol id="${o.id}-src"></ol></div></aside></div>`;
+  const cv=$('#'+o.id+'-cv'),c=cv.getContext('2d'),bar=$('#'+o.id+'-bar'),dyn=$('#'+o.id+'-dyn');
+  let sc=o.scenes[0],S={},H=[],sel=null,T=0;
+  $('#'+o.id+'-sum').innerHTML=o.summary.map(s=>`<li>${s}</li>`).join('');
+  $('#'+o.id+'-src').innerHTML=o.src.map(s=>`<li>${s}</li>`).join('');
+  SRC_ALL.push([o.title,o.src]);
+  function ctls(){
+    bar.innerHTML=`<label>Materi <select data-sc>${o.scenes.map(s=>`<option value="${s.k}"${s===sc?' selected':''}>${s.t}</option>`).join('')}</select></label>`+
+    (sc.ctl||[]).filter(d=>!d.when||d.when(S)).map(d=>{
+      if(d.type==='sel')return `<label>${d.label} <select data-k="${d.k}">${d.opts.map(([v,t])=>`<option value="${v}"${S[d.k]==v?' selected':''}>${t}</option>`).join('')}</select></label>`;
+      if(d.type==='chk')return `<label><input type="checkbox" data-k="${d.k}"${S[d.k]?' checked':''}> ${d.label}</label>`;
+      return `<label>${d.label} <input type="range" data-k="${d.k}" min="${d.min}" max="${d.max}" step="${d.step||1}" value="${S[d.k]}" style="width:130px"><b data-o="${d.k}">${S[d.k]}</b></label>`;}).join('');
+  }
+  function panel(){dyn.innerHTML=`<h3>${sc.t}</h3>`+(sc.text?sc.text(S):'')+(sel?`<div class="hot"><b>${sel.t}</b><p>${sel.d}</p></div>`:'<p class="muted">Klik bagian pada gambar untuk keterangan.</p>');}
+  function setScene(k){sc=o.scenes.find(s=>s.k===k);S={};(sc.ctl||[]).forEach(d=>S[d.k]=d.val);sel=null;if(sc.init)sc.init(S);ctls();panel();}
+  bar.addEventListener('change',e=>{const t=e.target;if(t.dataset.sc!==undefined){setScene(t.value);return;}if(!t.dataset.k)return;S[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;if(sc.onctl)sc.onctl(S,t.dataset.k);if((sc.ctl||[]).some(d=>d.when))ctls();panel();});
+  bar.addEventListener('input',e=>{const t=e.target;if(t.type!=='range')return;S[t.dataset.k]=+t.value;const b=$('[data-o="'+t.dataset.k+'"]',bar);if(b)b.textContent=t.value;if(sc.onctl)sc.onctl(S,t.dataset.k);panel();});
+  function pos(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*CW/r.width,(e.clientY-r.top)*CH/r.height];}
+  function hit(e){const [x,y]=pos(e);let best=null,bd=1e9;H.forEach(h=>{const d=Math.hypot(h.x-x,h.y-y);if(d<=h.r+5&&d<bd){bd=d;best=h;}});return best;}
+  cv.addEventListener('click',e=>{const h=hit(e);if(h){sel={t:h.t,d:h.d};panel();}});
+  cv.addEventListener('mousemove',e=>{const h=hit(e);cv.style.cursor=h?'pointer':'default';tip(h?h.t:'',e);});
+  cv.addEventListener('mouseleave',e=>tip('',e));
+  // kuis
+  const qe=$('#'+o.id+'-quiz');let qi=0,qs=0,done2=false;
+  function qr(){
+    if(qi>=o.quiz.length){qe.innerHTML=`<h4>Kuis selesai</h4><p>Skor: <b>${qs}</b> / ${o.quiz.length}</p><button class="b" data-r>Ulangi kuis</button>`;return;}
+    const q=o.quiz[qi];done2=false;
+    qe.innerHTML=`<h4>Kuis ${qi+1}/${o.quiz.length}</h4><p>${q.q}</p>`+q.o.map((t,j)=>`<button class="b qo" data-j="${j}">${t}</button>`).join('')+`<div class="qx"></div>`;
+  }
+  qe.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.r!==undefined){qi=0;qs=0;qr();return;}
+    if(b.dataset.n!==undefined){qi++;qr();return;}
+    if(b.dataset.j===undefined||done2)return;done2=true;const q=o.quiz[qi],j=+b.dataset.j;
+    $$('.qo',qe).forEach((x,i)=>{if(i===q.a)x.classList.add('ok');else if(i===j)x.classList.add('bad');});
+    if(j===q.a)qs++;
+    $('.qx',qe).innerHTML=`<p><b>${j===q.a?'Benar.':'Kurang tepat.'}</b> ${q.e}</p><button class="b" data-n>${qi+1<o.quiz.length?'Berikutnya':'Lihat skor'}</button>`;});
+  function loop(){requestAnimationFrame(loop);if(!cv.offsetParent)return;T=performance.now()/1000;H=[];
+    c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,CW,CH);c.fillStyle='#0d1520';c.fillRect(0,0,CW,CH);
+    try{sc.draw(c,S,T,H);}catch(err){console.error(err);}
+    if(sc.cap)T2(c,sc.cap,16,CH-14,{s:12,c:'#8fa3b8'});}
+  setScene(sc.k);qr();loop();
+}
+
+/* ---------- Mata Sakit: retinopati diabetik, katarak diabetik, glaukoma ---------- */
+inits.sakit=function(){
+const ST=['Normal','NPDR ringan','NPDR sedang','NPDR berat','Proliferatif (PDR)'];
+// pembuluh retina (statis, seeded)
+const vr=rng(11),VES=[];
+function grow(x,y,a,len,w,art,curve,depth){const pts=[[x,y]];let ang=a;for(let i=0;i<len;i++){ang+=curve+(vr()-.5)*.05;x+=Math.cos(ang)*4;y+=Math.sin(ang)*4;pts.push([x,y]);}
+  VES.push({pts,w,art});if(depth<2)for(let k=0;k<2;k++){const i=Math.floor(len*(.3+.3*k+vr()*.15)),p=pts[i];grow(p[0],p[1],ang+(vr()<.5?-1:1)*(.7+vr()*.4),Math.floor(len*.5),w*.6,art,curve*.4*(vr()<.5?-1:1),depth+1);}}
+const DX=285,DY=250,MX=455,MY=262;
+[[-1.25,.013,1],[1.25,-.013,1],[-1.45,.011,0],[1.45,-.011,0]].forEach(([a,cv,art],i)=>grow(DX+Math.cos(a)*14,DY+Math.sin(a)*14,a+(i>1?.12*(i===2?1:-1):0),i<2?70:62,art?3.2:4.4,art,cv,0));
+grow(DX-18,DY-6,Math.PI+.3,30,3,1,-.01,1);grow(DX-18,DY+6,Math.PI-.3,30,3,1,.01,1);
+const lr=rng(5);const ring=(n,r0,r1)=>{const a=[];while(a.length<n){const x=MX+(lr()-.5)*340,y=MY+(lr()-.5)*340,d=Math.hypot(x-MX,y-MY);if(d>r0&&d<r1&&Math.hypot(x-350,y-255)<190&&Math.hypot(x-DX,y-DY)>45)a.push([x,y,lr()]);}return a;};
+const LES={ma:ring(28,25,170),blot:ring(12,40,170),ex:ring(14,35,120),cw:ring(6,60,170),irma:ring(4,70,170)};
+const NVE=[[400,150],[430,135],[455,150]];
+function fundus(c,S,T,H){
+  const cx=350,cy=255,R=232,st=+S.stage,dog=S.sp==='anjing';
+  c.save();c.beginPath();c.arc(cx,cy,R,0,6.283);c.clip();
+  c.fillStyle=g2(c,cx,cy,R,dog?'#7a5532':'#e0652f',dog?'#2c180c':'#8d2c14');c.fillRect(0,0,CW,CH);
+  if(dog){c.save();c.beginPath();c.moveTo(0,cy+10);c.quadraticCurveTo(cx,cy-70,CW,cy+10);c.lineTo(CW,0);c.lineTo(0,0);c.closePath();c.fillStyle=g2(c,cx,cy-120,190,'#b9e3a2','#3f8f78');c.globalAlpha=.8;c.fill();c.restore();}
+  c.lineCap='round';
+  VES.forEach(v=>{c.beginPath();v.pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.strokeStyle=v.art?'#c8361e':'#7d1a14';c.lineWidth=v.w;c.stroke();});
+  // diskus
+  c.fillStyle=g2(c,DX,DY,36,'#f7e2b4','#d9a35e');c.beginPath();c.ellipse(DX,DY,31,35,0,0,6.283);c.fill();
+  c.fillStyle='#fff3d2';c.beginPath();c.ellipse(DX,DY,15,18,0,0,6.283);c.fill();
+  H.push({x:DX,y:DY,r:34,t:'Diskus optikus',d:'Tempat serabut saraf retina keluar menjadi N. optikus dan pembuluh sentral masuk/keluar. Cekungan (cup) di tengah normal; pada glaukoma cekungan melebar. Pada retinopati proliferatif, pembuluh baru sering tumbuh di diskus (NVD).'});
+  // makula
+  c.fillStyle=g2(c,MX,MY,46,'#7c2410','#00000000');c.beginPath();c.arc(MX,MY,46,0,6.283);c.fill();
+  c.fillStyle='#5a1608';c.beginPath();c.arc(MX,MY,6,0,6.283);c.fill();
+  H.push({x:MX,y:MY,r:30,t:'Makula dan fovea',d:'Pusat penglihatan tajam dan warna (padat kerucut). Hanya manusia dan primata yang punya fovea berbentuk lekukan. Edema makula (cairan menumpuk) adalah penyebab utama turunnya tajam penglihatan pada diabetes.'});
+  if(S.me&&st>0){const p=.5+.5*Math.sin(T*2);c.strokeStyle=`rgba(255,235,120,${.35+.25*p})`;c.lineWidth=16;c.beginPath();c.arc(MX,MY,54,0,6.283);c.stroke();
+    c.fillStyle='#ffe9a0';for(let i=0;i<9;i++){const a=i/9*6.283+.2;DOT(c,MX+Math.cos(a)*(70+(i%2)*6),MY+Math.sin(a)*(70+(i%2)*6),3.2,'#ffe9a0');}
+    H.push({x:MX,y:MY-54,r:22,t:'Edema makula diabetik',d:'Kebocoran kapiler perifovea menumpuk cairan di retina tengah; sering disertai eksudat keras berbentuk cincin (sirsinat). Dinilai paling jelas dengan OCT; diterapi anti-VEGF atau laser fokal.'});}
+  const n=(a,b)=>[0,a,b,b,b][st];
+  LES.ma.slice(0,n(8,16)+(st>=3?12:0)).forEach(([x,y])=>{DOT(c,x,y,2.6,'#b3141c');});
+  if(st>0)H.push({x:LES.ma[0][0],y:LES.ma[0][1],r:10,t:'Mikroaneurisma',d:'Kantung kecil pada dinding kapiler akibat hilangnya perisit; lesi paling dini retinopati diabetik. Tampak sebagai titik merah kecil dan bisa bocor.'});
+  if(st>=2){LES.blot.slice(0,st>=3?12:5).forEach(([x,y,r])=>{c.fillStyle='rgba(90,8,14,.85)';c.beginPath();c.ellipse(x,y,6+r*5,5+r*3,r*3,0,6.283);c.fill();});
+    H.push({x:LES.blot[0][0],y:LES.blot[0][1],r:12,t:'Perdarahan bercak/titik (dot-blot)',d:'Darah di lapisan retina dalam akibat pecahnya kapiler/mikroaneurisma. Jumlah dan sebaran di keempat kuadran dipakai dalam penentuan derajat berat (aturan 4-2-1).'});
+    LES.ex.slice(0,st>=3?14:6).forEach(([x,y,r])=>{DOT(c,x,y,2.5+r*2,'#f4df7a');});
+    H.push({x:LES.ex[0][0],y:LES.ex[0][1],r:10,t:'Eksudat keras (hard exudate)',d:'Endapan lipoprotein dan protein berwarna kuning mengilap yang tertinggal setelah cairan bocoran diserap; pertanda kebocoran kronis.'});
+    LES.cw.slice(0,st>=3?6:2).forEach(([x,y,r])=>{c.fillStyle='rgba(255,255,255,.75)';c.beginPath();c.ellipse(x,y,13+r*8,6+r*3,r,0,6.283);c.fill();});
+    H.push({x:LES.cw[0][0],y:LES.cw[0][1],r:16,t:'Bercak kapas (cotton-wool spot)',d:'Infark serabut saraf retina karena iskemia lokal; tampak putih kabur berbatas tidak tegas. Penanda iskemia yang meluas.'});}
+  if(st>=3){const v=VES.filter(v=>!v.art)[0];for(let i=6;i<v.pts.length-2;i+=5){c.fillStyle='#6a1612';c.beginPath();c.ellipse(v.pts[i][0],v.pts[i][1],5.5,5.5,0,0,6.283);c.fill();}
+    H.push({x:v.pts[20][0],y:v.pts[20][1],r:18,t:'Vena bermanik (venous beading)',d:'Vena berkelok dan menyempit-melebar seperti tasbih; tanda iskemia berat dan risiko tinggi menjadi proliferatif.'});
+    c.strokeStyle='#d42a2a';c.lineWidth=1.6;LES.irma.forEach(([x,y])=>{c.beginPath();c.moveTo(x-12,y);c.bezierCurveTo(x-6,y-9,x+2,y+9,x+12,y-2);c.stroke();});
+    H.push({x:LES.irma[0][0],y:LES.irma[0][1],r:14,t:'IRMA',d:'Intraretinal microvascular abnormalities: pembuluh halus berkelok di dalam retina, bukan pembuluh baru sejati, tetapi tanda kuat iskemia.'});}
+  if(st>=3)T2(c,'Aturan 4-2-1: perdarahan berat di 4 kuadran,\nvena bermanik ≥ 2 kuadran, IRMA ≥ 1 kuadran',cx,cy+R-40,{a:'center',s:11,c:'#ffe9c0'});
+  if(st===4){c.strokeStyle='#d42a2a';c.lineWidth=1.3;for(let k=0;k<7;k++){c.beginPath();c.moveTo(DX+26,DY-10+k*3);c.bezierCurveTo(DX+50,DY-50+k*8,DX+30+k*5,DY-70-k*4,DX+60+k*6,DY-40+k*12);c.stroke();}
+    H.push({x:DX+50,y:DY-35,r:28,t:'Neovaskularisasi diskus (NVD)',d:'Pembuluh baru rapuh akibat VEGF yang dilepas jaringan iskemik. Tumbuh keluar dari retina ke vitreus, mudah berdarah dan menarik retina (ablasio traksi).'});
+    NVE.forEach(([x,y],i)=>{c.beginPath();c.moveTo(x,y);c.bezierCurveTo(x+10,y-12,x+14,y+10,x+26,y-6);c.stroke();});
+    H.push({x:430,y:145,r:30,t:'Neovaskularisasi di tempat lain (NVE)',d:'Pembuluh baru di sepanjang arkade pembuluh; bila berdarah menimbulkan perdarahan preretina/vitreus.'});
+    c.save();c.beginPath();c.moveTo(250,375);c.quadraticCurveTo(350,470,450,375);c.closePath();c.fillStyle='rgba(120,6,12,.88)';c.fill();c.strokeStyle='#3a0306';c.lineWidth=2;c.stroke();c.restore();
+    H.push({x:350,y:410,r:40,t:'Perdarahan preretina/vitreus',d:'Darah mengumpul membentuk garis datar (boat-shaped) di rongga preretina; bisa menghalangi pandangan mendadak. Perlu vitrektomi bila tidak diserap.'});}
+  c.restore();
+  c.strokeStyle='#000';c.lineWidth=14;c.beginPath();c.arc(cx,cy,R+7,0,6.283);c.stroke();
+}
+function lens(c,S,T,H){
+  const glu=+S.glu,wk=+S.wk,k={anjing:1,manusia:.55,kucing:.08}[S.sp];
+  const stress=clamp((glu-180)/420,0,1),op=clamp(stress*Math.min(1,wk/6)*k*1.2,0,1),swell=1+.18*op;
+  const cx=210,cy=250;
+  c.save();c.translate(cx,cy);c.scale(swell,swell);
+  c.beginPath();c.ellipse(0,0,70,100,0,0,6.283);c.fillStyle=g2(c,0,0,100,'#dfeefc','#8fb4d4');c.fill();
+  c.save();c.clip();c.strokeStyle='#ffffff55';c.lineWidth=1;for(let i=-8;i<=8;i++){c.beginPath();c.ellipse(0,0,Math.abs(i)*8+3,100,0,Math.PI*(i<0?.5:-.5),Math.PI*(i<0?1.5:.5));c.stroke();}
+  c.fillStyle=`rgba(235,235,225,${op*.92})`;c.fillRect(-90,-110,180,220);
+  const rr=rng(3);c.fillStyle=`rgba(255,255,255,${op*.7})`;for(let i=0;i<40;i++)c.fillRect((rr()-.5)*130,(rr()-.5)*180,3+rr()*10,1.5);c.restore();
+  c.lineWidth=3;c.strokeStyle='#7aa3c6';c.beginPath();c.ellipse(0,0,70,100,0,0,6.283);c.stroke();c.restore();
+  H.push({x:cx,y:cy,r:80*swell,t:'Lensa',d:`Opasitas lensa ± ${Math.round(op*100)}%. Serat lensa jernih karena tersusun teratur dan kadar air terjaga. Sorbitol yang menumpuk menarik air masuk, serat membengkak, pecah, dan lensa menjadi keruh (katarak).`});
+  T2(c,S.sp==='kucing'?'Kucing: aktivitas aldose reduktase lensa rendah,\nkatarak diabetik jarang.':S.sp==='anjing'?'Anjing: katarak dapat matang dalam hitungan\nhari sampai minggu setelah diabetes dimulai.':'Manusia: katarak muncul lebih dini dan lebih sering\npada penderita diabetes.',cx,420,{a:'center',s:12,c:'#ffd9a0'});
+  // jalur poliol
+  const bx=390,by=90;
+  BOX(c,bx,by,110,40,'Glukosa\nberlebih','#2f6fa8',{s:12});BOX(c,bx+150,by,150,40,'Sorbitol\n(sulit keluar sel)','#b0702b',{s:12});BOX(c,bx+150,by+110,150,40,'Fruktosa\n(lambat, via SDH)','#6a4c93',{s:12});
+  ARW(c,bx+110,by+20,bx+150,by+20,'#9fb0c3');T2(c,'aldose reduktase',bx+130,by-6,{a:'center',s:11,c:'#ffd9a0'});
+  ARW(c,bx+225,by+40,bx+225,by+110,'#9fb0c3');
+  H.push({x:bx+130,y:by+20,r:30,t:'Aldose reduktase',d:'Enzim yang mengubah glukosa menjadi sorbitol (jalur poliol) saat heksokinase jenuh pada hiperglikemia. Sorbitol bersifat osmotik dan lambat dikeluarkan dari sel lensa.'});
+  H.push({x:bx+225,y:by+20,r:30,t:'Sorbitol',d:'Menarik air ke dalam serat lensa (pembengkakan osmotik), merusak membran, dan mengubah transparansi. Inhibitor aldose reduktase pernah diuji untuk mencegah katarak diabetik.'});
+  // partikel sorbitol dan air
+  const n=Math.round(stress*24);for(let i=0;i<n;i++){const a=i*2.4+T*.4,r=15+(i*37%50);DOT(c,cx+Math.cos(a)*r*.8,cy+Math.sin(a)*r*1.2,3,'#e29a4a');}
+  for(let i=0;i<Math.round(stress*14);i++){const f=((T*.35+i/14)%1),a=i*.9;c.fillStyle='#6ec1ff';c.beginPath();c.arc(cx+Math.cos(a)*(120-f*55)*1.0,cy+Math.sin(a)*(150-f*60),2.4,0,6.283);c.fill();}
+  // bar opasitas
+  c.fillStyle='#223347';RR(c,390,260,260,16,8);c.fill();c.fillStyle=`hsl(${40-op*30},80%,${60-op*10}%)`;RR(c,390,260,Math.max(8,260*op),16,8);c.fill();T2(c,'Opasitas lensa',390,254,{s:12,c:'#9fb3c8'});
+  c.fillStyle='#223347';RR(c,390,320,260,16,8);c.fill();c.fillStyle='#e29a4a';RR(c,390,320,Math.max(8,260*stress),16,8);c.fill();T2(c,'Kadar sorbitol relatif',390,314,{s:12,c:'#9fb3c8'});
+  T2(c,glu<=180?'Glukosa di bawah ambang ginjal/lensa: lensa relatif aman':'Glukosa tinggi: jalur poliol aktif',390,370,{s:12,c:glu<=180?'#6ee7a6':'#ffb36b'});
+}
+function glauc(c,S,T,H){
+  const m=S.mode,P={normal:[10,20,15],open:[10,20,32],closed:[10,20,55]};
+  const iop=P[m][2]+Math.sin(T*1.7)*.8;
+  // kornea
+  c.lineWidth=7;c.strokeStyle='#9cc8ee';c.beginPath();c.moveTo(210,95);c.quadraticCurveTo(55,260,210,425);c.stroke();
+  H.push({x:105,y:260,r:30,t:'Kornea',d:'Jaringan bening di depan mata; menjadi keruh/edematosa bila TIO naik tajam (tanda khas glaukoma akut pada anjing).'});
+  // lensa
+  c.beginPath();c.ellipse(300,260,52,88,0,0,6.283);c.fillStyle=g2(c,300,260,90,'#e5f1fb','#8fb4d4');c.fill();
+  H.push({x:310,y:260,r:42,t:'Lensa',d:'Digantung zonula dari badan siliar. Luksasio lensa (terutama pada terrier) dapat menyumbat pupil dan menyebabkan glaukoma sekunder.'});
+  // iris
+  c.lineWidth=11;c.strokeStyle='#8a5a2a';c.lineCap='round';
+  if(m==='closed'){c.beginPath();c.moveTo(262,212);c.quadraticCurveTo(222,170,214,128);c.stroke();c.beginPath();c.moveTo(262,308);c.quadraticCurveTo(222,350,214,392);c.stroke();}
+  else{c.beginPath();c.moveTo(262,214);c.lineTo(240,128);c.stroke();c.beginPath();c.moveTo(262,306);c.lineTo(240,392);c.stroke();}
+  H.push({x:250,y:165,r:26,t:'Iris dan pupil',d:m==='closed'?'Blok pupil: iris menempel pada lensa sehingga cairan aqueous terperangkap di bilik belakang dan mendorong iris ke depan (iris bombé), menutup sudut.':'Iris mengatur ukuran pupil. Cairan aqueous melewati pupil dari bilik belakang ke bilik depan.'});
+  // badan siliar
+  c.fillStyle='#c7728a';c.beginPath();c.ellipse(300,112,36,16,.1,0,6.283);c.fill();c.beginPath();c.ellipse(300,408,36,16,-.1,0,6.283);c.fill();
+  H.push({x:300,y:112,r:30,t:'Badan siliar',d:'Epitel siliar memproduksi aqueous humor secara aktif (± 2–3 µL/menit pada manusia). Obat penurun produksi: penghambat karbonat anhidrase dan β-blocker.'});
+  H.push({x:300,y:408,r:30,t:'Badan siliar',d:'Epitel siliar memproduksi aqueous humor secara aktif. Obat penurun produksi: penghambat karbonat anhidrase dan β-blocker.'});
+  // sudut + TM
+  [[204,118,-1],[204,402,1]].forEach(([x,y,s])=>{c.fillStyle=m==='open'?'#4a2a2a':'#b5a07a';c.beginPath();c.ellipse(x,y,12,9,0,0,6.283);c.fill();c.strokeStyle='#6fa8dc';c.lineWidth=2.5;c.beginPath();c.ellipse(x-8,y+s*(-12),6,5,0,0,6.283);c.stroke();
+    H.push({x,y,r:16,t:m==='closed'?'Sudut iridokornea tertutup':m==='open'?'Jalinan trabekula tersumbat':'Jalinan trabekula & sudut terbuka',d:m==='closed'?'Pangkal iris menempel pada kornea sehingga jalinan trabekula tertutup: aliran keluar mendadak terhenti, TIO melonjak (glaukoma sudut tertutup, sering akut dan nyeri).':m==='open'?'Sudut tampak terbuka, tetapi tahanan di jalinan trabekula meningkat: TIO naik perlahan tanpa nyeri (sudut terbuka). Pada anjing, displasia ligamentum pektinatum (goniodisgenesis) merupakan predisposisi ras tertentu.':'Aqueous mengalir melalui jalinan trabekula ke kanal Schlemm (konvensional) dan sebagian lewat jalur uveoskleral lalu masuk vena episklera.'});});
+  // aliran
+  const paths=[[[300,120],[272,150],[266,205],[250,260],[222,215],[210,150],[204,118]],[[300,400],[272,370],[266,315],[250,260],[222,305],[210,370],[204,402]]];
+  paths.forEach((pt,j)=>{for(let i=0;i<20;i++){let p=(T*.09+i/20+j*.5)%1;if(m==='closed'){p=Math.min(p,.34+((i*13)%7)*.012);}else if(m==='open'&&p>.82)p=.82+(p-.82)*.25+((i*7)%5)*.012;
+    const [x,y]=poly(pt,p);DOT(c,x+Math.sin(i*5)*3,y+Math.cos(i*3)*3,2.6,'#7fd1ff');}});
+  T2(c,'Aqueous humor',250,60,{s:12,c:'#7fd1ff'});T2(c,'bilik depan',140,262,{s:11,c:'#7fd1ff'});T2(c,'bilik belakang',284,190,{s:10,c:'#7fd1ff'});
+  // manometer
+  const sp=S.sp,rg={manusia:[10,21],anjing:[10,20],kucing:[10,20]}[sp],gx=420,gy=120,gw=240;
+  T2(c,'Tekanan intraokular (mmHg)',gx,gy-18,{s:13,b:1});
+  c.fillStyle='#223347';RR(c,gx,gy,gw,18,9);c.fill();const px=v=>gx+gw*(v-5)/60;
+  c.fillStyle='#2d8a5f';RR(c,px(rg[0]),gy,px(rg[1])-px(rg[0]),18,6);c.fill();
+  c.fillStyle='#fff';c.beginPath();c.moveTo(px(iop),gy+30);c.lineTo(px(iop)-7,gy+44);c.lineTo(px(iop)+7,gy+44);c.fill();
+  T2(c,iop.toFixed(0)+' mmHg',px(iop),gy+60,{a:'center',s:14,b:1,c:iop>rg[1]?'#ff9b8a':'#6ee7a6'});
+  T2(c,'normal ± '+rg[0]+'–'+rg[1],px((rg[0]+rg[1])/2),gy-2,{a:'center',s:10,c:'#9fe3c1'});
+  T2(c,m==='normal'?'Produksi = pengeluaran: TIO stabil':m==='open'?'Pengeluaran melambat (tahanan trabekula naik)':'Aliran keluar terblokir: TIO naik cepat',gx,gy+95,{s:12,c:'#ffd9a0'});
+  T2(c,m==='closed'?'Gejala (anjing): mata merah, kornea keruh,\npupil melebar, nyeri, cepat buta. Darurat.':m==='open'?'Perjalanan perlahan: kerusakan saraf optik\nsering baru terdeteksi saat lanjut.':'',gx,gy+125,{s:11,c:'#9fb3c8'});
+}
+function saraf(c,S,T,H){
+  const cdr=+S.cdr/100,cx=190,cy=250;
+  c.fillStyle=g2(c,cx,cy,150,'#e0652f','#7a2410');c.beginPath();c.arc(cx,cy,150,0,6.283);c.fill();
+  c.strokeStyle='#c8361e';c.lineWidth=5;[[-1,-1],[-1,1]].forEach(([a,b])=>{c.beginPath();c.moveTo(cx,cy);c.quadraticCurveTo(cx+60,cy+b*70,cx+140,cy+b*40+a*10);c.stroke();});
+  c.fillStyle='#e9b878';c.beginPath();c.ellipse(cx,cy,52,56,0,0,6.283);c.fill();
+  c.fillStyle='#fff0d0';c.beginPath();c.ellipse(cx+(cdr-.3)*10,cy,52*cdr,56*cdr,0,0,6.283);c.fill();
+  c.strokeStyle='#8a5a2a';c.lineWidth=2;c.beginPath();c.ellipse(cx,cy,52,56,0,0,6.283);c.stroke();
+  H.push({x:cx,y:cy,r:50,t:'Rasio cup/disc = '+cdr.toFixed(2),d:'Cekungan membesar karena hilangnya sel ganglion retina dan akson, serta melengkungnya lamina kribrosa. Pada manusia rasio ≤ 0,5 umumnya normal; selisih > 0,2 antar mata atau penipisan rim mencurigakan. Pada anjing, kehilangan reflek pupil dan buta terjadi bila kerusakan lanjut.'});
+  T2(c,'Diskus optikus',cx,430,{a:'center',s:12,c:'#9fb3c8'});
+  // lapang pandang
+  const vx=520,vy=250,r=110;c.fillStyle='#1a2a3a';c.beginPath();c.arc(vx,vy,r,0,6.283);c.fill();c.strokeStyle='#40566d';c.lineWidth=1;c.beginPath();c.arc(vx,vy,r*.5,0,6.283);c.stroke();
+  const loss=clamp((cdr-.35)/.55,0,1);
+  c.save();c.beginPath();c.arc(vx,vy,r,0,6.283);c.clip();c.fillStyle='#000';c.globalAlpha=.88;
+  c.beginPath();c.arc(vx,vy,r+4,0,6.283);c.arc(vx,vy,r*(1-.8*loss),0,6.283,true);c.fill();
+  c.beginPath();c.moveTo(vx,vy);c.arc(vx,vy,r,-2.9,-2.9+loss*1.3);c.fill();c.restore();
+  DOT(c,vx,vy,3,'#fff');T2(c,'Lapang pandang',vx,vy+r+22,{a:'center',s:12,c:'#9fb3c8'});
+  T2(c,loss<.1?'Normal':loss<.5?'Skotoma busur/penyempitan tepi':'Penglihatan terowongan',vx,vy+r+40,{a:'center',s:12,c:'#ffd9a0'});
+  T2(c,'Kerusakan glaukoma dimulai dari tepi sehingga\npenderita sering tidak sadar sampai lanjut.',vx,60,{a:'center',s:12,c:'#9fb3c8'});
+}
+const SK={
+ fundus:{k:'fundus',t:'Retinopati diabetik (fundus)',ctl:[{k:'stage',label:'Stadium',type:'sel',val:'0',opts:ST.map((t,i)=>[i,t])},{k:'me',label:'Edema makula',type:'chk',val:false},{k:'sp',label:'Spesies',type:'sel',val:'manusia',opts:[['manusia','Manusia'],['anjing','Anjing (tapetum)']]}],draw:fundus,
+  text:S=>`<p>${['Retina tanpa lesi diabetik.','Hanya mikroaneurisma (kapiler melebar akibat hilangnya perisit).','Lebih dari sekadar mikroaneurisma: perdarahan titik/bercak, eksudat keras, bercak kapas, tetapi belum memenuhi kriteria berat.','Memenuhi aturan 4-2-1: risiko tinggi menjadi proliferatif dalam waktu dekat.','Neovaskularisasi dan/atau perdarahan vitreus/preretina: ancaman kebutaan.'][S.stage]}</p>`+(S.sp==='anjing'?'<p class="kv">Pada anjing diabetes lebih sering menimbulkan <b>katarak</b>; retinopati yang bermakna klinis jarang. Fundus anjing memiliki tapetum (area berkilau di atas diskus) dan tidak punya fovea sejati.</p>':'')+'<table class="tbl"><tr><th>Derajat</th><th>Temuan utama</th></tr><tr><td>Tanpa</td><td>—</td></tr><tr><td>Ringan</td><td>Mikroaneurisma saja</td></tr><tr><td>Sedang</td><td>MA + perdarahan/eksudat/CWS &lt; berat</td></tr><tr><td>Berat</td><td>4-2-1</td></tr><tr><td>PDR</td><td>NV, perdarahan vitreus</td></tr></table><p class="kv">Mekanisme: hiperglikemia kronik → hilang perisit dan sel endotel → kebocoran/oklusi kapiler → iskemia → VEGF → pembuluh baru rapuh. Terapi: kontrol glukosa dan tekanan darah, fotokoagulasi laser, anti-VEGF, vitrektomi.</p>'},
+ lensa:{k:'lensa',t:'Katarak diabetik (lensa)',ctl:[{k:'sp',label:'Spesies',type:'sel',val:'anjing',opts:[['anjing','Anjing'],['kucing','Kucing'],['manusia','Manusia']]},{k:'glu',label:'Glukosa (mg/dL)',type:'range',min:80,max:600,step:10,val:300},{k:'wk',label:'Lama (minggu)',type:'range',min:0,max:12,step:1,val:4}],draw:lens,
+  text:()=>'<p>Glukosa masuk lensa tanpa insulin. Bila kadar tinggi, jalur poliol bekerja: glukosa → sorbitol (aldose reduktase). Sorbitol menarik air sehingga serat lensa bengkak dan keruh. Pada anjing katarak ini cepat dan sering menyebabkan uveitis akibat protein lensa yang bocor (lens-induced uveitis).</p>'},
+ glauk:{k:'glauk',t:'Glaukoma (aqueous humor dan TIO)',ctl:[{k:'mode',label:'Kondisi',type:'sel',val:'normal',opts:[['normal','Normal'],['open','Sudut terbuka'],['closed','Sudut tertutup']]},{k:'sp',label:'Spesies',type:'sel',val:'manusia',opts:[['manusia','Manusia'],['anjing','Anjing'],['kucing','Kucing']]}],draw:glauc,
+  text:S=>`<p>Glaukoma ialah neuropati optik progresif yang umumnya berkaitan dengan TIO tinggi. TIO = produksi aqueous (badan siliar) dibanding pengeluaran (trabekula dan uveoskleral).</p>`+({manusia:'<p class="kv">Manusia: glaukoma sudut terbuka primer paling sering; sudut tertutup akut menyakitkan dan darurat.</p>',anjing:'<p class="kv">Anjing: glaukoma primer berkaitan ras (mis. Cocker Spaniel, Basset Hound, Siberian Husky, Shar-pei) akibat kelainan sudut iridokornea; sekunder karena luksasio lensa, uveitis, tumor intraokular, atau hifema. Serangan akut = darurat (risiko buta dalam jam–hari).</p>',kucing:'<p class="kv">Kucing: kebanyakan sekunder (uveitis kronik, neoplasia); perjalanan sering lambat sehingga baru terlihat saat bola mata membesar.</p>'}[S.sp])},
+ saraf:{k:'saraf',t:'Saraf optik dan lapang pandang',ctl:[{k:'cdr',label:'Rasio cup/disc ×100',type:'range',min:30,max:90,step:1,val:40}],draw:saraf,
+  text:()=>'<p>TIO tinggi yang berlangsung lama merusak akson sel ganglion retina di lamina kribrosa. Cekungan diskus melebar dan lapang pandang menyempit dari tepi; kerusakan yang sudah terjadi tidak pulih, sehingga tujuannya mencegah progresi.</p>'}
+};
+topicTab({id:'sakit',title:'Mata Sakit',scenes:[SK.fundus,SK.lensa,SK.glauk,SK.saraf],
+ summary:['Retinopati diabetik: mikroaneurisma → perdarahan/eksudat/CWS → iskemia (IRMA, vena bermanik) → neovaskularisasi.','Aturan 4-2-1 menandai derajat berat; edema makula bisa terjadi di semua stadium dan menjadi sebab utama turunnya visus.','Terapi: kontrol glukosa dan tekanan darah, laser, anti-VEGF, vitrektomi.','Katarak diabetik terjadi lewat jalur poliol (aldose reduktase → sorbitol → edema osmotik); sangat cepat pada anjing, jarang pada kucing.','Glaukoma: ketidakseimbangan produksi dan pengeluaran aqueous; sudut terbuka (lambat, tanpa nyeri) vs sudut tertutup (akut, nyeri).','Glaukoma anjing: primer (ras tertentu) atau sekunder (luksasio lensa, uveitis, tumor); akut adalah kegawatan.','Kerusakan glaukoma tidak dapat dipulihkan; deteksi dini lewat tonometri dan pemeriksaan diskus optikus.'],
+ quiz:[{q:'Lesi paling dini retinopati diabetik adalah…',o:['Neovaskularisasi diskus','Mikroaneurisma','Perdarahan vitreus','Ablasio retina traksi'],a:1,e:'Hilangnya perisit membentuk mikroaneurisma pada kapiler; lesi lain muncul belakangan.'},
+ {q:'Aturan 4-2-1 dipakai untuk menentukan…',o:['NPDR berat','Ablasio retina','Katarak matang','Glaukoma akut'],a:0,e:'Perdarahan di 4 kuadran, vena bermanik di ≥2 kuadran, IRMA di ≥1 kuadran = NPDR berat.'},
+ {q:'Penyebab langsung pembengkakan lensa pada katarak diabetik adalah…',o:['Penumpukan sorbitol yang menarik air','Kalsium berlebih','Infeksi bakteri','Defisiensi vitamin A'],a:0,e:'Aldose reduktase mengubah glukosa menjadi sorbitol; sorbitol menjadi osmotik aktif.'},
+ {q:'Hewan yang jarang mengalami katarak diabetik karena aldose reduktase lensanya rendah ialah…',o:['Anjing','Kucing','Manusia','Tikus'],a:1,e:'Pada kucing aktivitas aldose reduktase lensa rendah sehingga katarak diabetik jarang.'},
+ {q:'Pada glaukoma sudut tertutup akut, penyebab naiknya TIO ialah…',o:['Produksi aqueous berhenti','Aliran keluar lewat sudut terhenti','Lensa menjadi bening','Kornea menipis'],a:1,e:'Iris menutup jalinan trabekula sehingga aqueous tidak bisa keluar.'},
+ {q:'Gejala khas glaukoma akut pada anjing ialah…',o:['Pupil kecil, mata kering','Mata merah, kornea keruh, pupil melebar, nyeri','Mata tampak normal','Bulu mata rontok'],a:1,e:'TIO tinggi menyebabkan edema kornea, nyeri, dan pupil melebar; perlu penanganan segera.'}],
+ src:['Maggs DJ, Miller PE, Ofri R. <i>Slatter\'s Fundamentals of Veterinary Ophthalmology</i>. Elsevier.','Gelatt KN (ed.). <i>Veterinary Ophthalmology</i>. Wiley-Blackwell.','Wilkinson CP, et al. Proposed international clinical diabetic retinopathy and diabetic macular edema disease severity scales. <i>Ophthalmology</i> 2003;110:1677–82.','American Academy of Ophthalmology. <i>Preferred Practice Pattern: Diabetic Retinopathy; Primary Open-Angle Glaucoma</i>.','Atlas fundus retinopati diabetik dan glaukoma (halaman buku milik penulis; gambar pada aplikasi ini digambar ulang secara digital).']});
+};
+
+/* ---------- Farmakologi: nasib obat, transpor, ionisasi, absorpsi, distribusi, metabolisme, eliminasi ---------- */
+inits.farma=function(){
+const OR='#f2a03d',BL='#5aa9ff',GR='#4cc38a',RD='#e5646b',PU='#a98ae8';
+const ion=(type,pKa,pH)=>type==='asam'?100/(1+Math.pow(10,pKa-pH)):100/(1+Math.pow(10,pH-pKa));
+// ---------- 1. nasib obat ----------
+function nasib(c,S,T,H){
+  const iv=S.rute==='iv';
+  const B=[['sed','Obat dalam\nbentuk sediaan',30,80,'#4a6fa5','Sediaan oral (tablet, kapsul, sirup, dsb.) berisi zat aktif bersama bahan pembantu. Mutu sediaan menentukan seberapa cepat dan sempurna obat tersedia untuk diserap.'],
+   ['lep','Pelepasan',190,80,'#4a6fa5','Pelepasan (liberasi): obat keluar dari sediaannya, misalnya tablet hancur menjadi granul/partikel. Dipengaruhi bahan pembantu, ukuran partikel, dan cara pembuatan.'],
+   ['lar','Larutan obat',350,80,'#4a6fa5','Pelarutan (disolusi): obat padat larut dalam cairan saluran cerna. Hanya obat yang sudah larut yang dapat menembus membran, jadi disolusi sering menjadi tahap penentu laju absorpsi.'],
+   ['abs','Absorpsi',510,80,iv?'#555':'#b0702b',iv?'Pada pemberian intravaskular (IV) tidak ada fase absorpsi: obat langsung masuk darah (bioavailabilitas 100%).':'Absorpsi: masuknya obat dari tempat pemberian ke sirkulasi darah, lewat difusi pasif, transpor terfasilitasi/aktif, atau pinositosis. Dipengaruhi sifat fisika-kimia obat, membran, dan aliran darah.'],
+   ['dar','Obat dalam\ndarah',510,230,'#a63d40','Obat dalam sirkulasi terbagi menjadi bentuk bebas dan terikat protein plasma; hanya yang bebas yang dapat berdistribusi, aktif, dan dieliminasi.'],
+   ['dis','Distribusi\n(jaringan)',510,370,'#2d8a5f','Distribusi: obat berpindah reversibel dari darah ke jaringan (hati, ginjal, otot, lemak, otak, dsb.) bergantung perfusi, pH, ikatan protein, dan afinitas jaringan.'],
+   ['met','Metabolisme',330,230,'#7a4fb5','Biotransformasi, terutama di hati: obat larut-lemak diubah menjadi lebih polar agar mudah diekskresi (fase I dan II).'],
+   ['eks','Ekskresi',150,230,'#2f6fa8','Pengeluaran obat dan metabolitnya dari tubuh: ginjal (urine) terutama, juga empedu/feses, paru, susu, liur, air mata, keringat, rambut.']];
+  const pos=Object.fromEntries(B.map(b=>[b[0],b]));
+  B.forEach(([k,t,x,y,col,d])=>{BOX(c,x,y,130,54,t,col,{s:12});H.push({x:x+65,y:y+27,r:62,t:t.replace('\n',' '),d});});
+  const ar=(a,b,dx1,dy1,dx2,dy2,col)=>ARW(c,pos[a][2]+dx1,pos[a][3]+dy1,pos[b][2]+dx2,pos[b][3]+dy2,col||'#9fb0c3',2.5);
+  ar('sed','lep',130,27,0,27);ar('lep','lar',130,27,0,27);ar('lar','abs',130,27,0,27);
+  if(!iv)ar('abs','dar',65,54,65,0);else ARW(c,575,40,575,230,OR,2.5);
+  ar('dar','met',0,27,130,27);ar('met','eks',0,27,130,27);
+  ARW(c,570,284,570,370,'#9fb0c3',2.5);ARW(c,590,370,590,284,'#9fb0c3',2.5);
+  ARW(c,540,284,200,284,'#6aa0c8',2);c.fillStyle='#6aa0c8';
+  T2(c,'(sebagian obat langsung diekskresi tanpa diubah)',360,300,{a:'center',s:10,c:'#6aa0c8'});
+  // bracket fase
+  c.strokeStyle='#4cc9a6';c.lineWidth=2;c.beginPath();c.moveTo(30,62);c.lineTo(640,62);c.stroke();T2(c,'FASE BIOFARMASI (di tempat pemberian) → Bab 3: pelepasan dan pelarutan sediaan',30,52,{s:11,c:'#4cc9a6',b:1});
+  c.strokeStyle='#f2b84b';c.beginPath();c.moveTo(130,430);c.lineTo(640,430);c.stroke();T2(c,'FASE FARMAKOKINETIK / DISPOSISI (dalam sirkulasi darah): distribusi, metabolisme, ekskresi',30,452,{s:11,c:'#f2b84b',b:1});
+  // partikel
+  const path=iv?[[575,40],[575,230],[575,260]]:[[95,107],[255,107],[415,107],[575,107],[575,230],[575,260],[395,257],[215,257]];
+  for(let i=0;i<9;i++){const [x,y]=poly(path,(T*.07+i/9)%1);DOT(c,x,y,4.5,OR,'#fff');}
+  T2(c,'Ekskresi = Filtrasi − Reabsorpsi + Sekresi (ginjal)',30,480,{s:11,c:'#9fb3c8'});
+}
+// ---------- 2. membran ----------
+let M=[],cnt={a:0,b:0},rc=0;
+function memInit(S){M=[];const f=S.mode==='aktif'?.3:.5+.4*(S.grad/100);for(let i=0;i<40;i++){const out=Math.random()<f;M.push({x:40+Math.random()*620,y:out?70+Math.random()*130:320+Math.random()*140,out,vx:0,vy:0});}cnt={a:0,b:0};rc=0;}
+function membran(c,S,T,H){
+  const mode=S.mode,lip=mode==='pasif'&&S.lip;
+  rc*=.985;
+  M.forEach(p=>{p.vx+=(Math.random()-.5)*.7;p.vy+=(Math.random()-.5)*.7;p.vx*=.93;p.vy*=.93;let nx=clamp(p.x+p.vx,30,670),ny=p.y+p.vy;
+    if(p.out&&ny>215||!p.out&&ny<305){let pr=0;
+      if(mode==='pasif')pr=lip?.5:.01;
+      else if(mode==='fasil'){if(Math.abs(p.x-230)<28||Math.abs(p.x-470)<28)pr=.55*(1-clamp(rc/5,0,1));}
+      else if(mode==='aktif'){if(p.out&&Math.abs(p.x-350)<34)pr=.4;else if(!p.out)pr=0.003;}
+      if(Math.random()<pr){p.out=!p.out;ny=p.out?213:307;rc+=1;if(p.out)cnt.b++;else cnt.a++;}else ny=p.out?214:306;}
+    p.x=nx;p.y=ny;});
+  // membran
+  c.fillStyle='#1c2d3f55';c.fillRect(0,225,CW,70);
+  for(let x=20;x<690;x+=15){[['#e0b14a',226,232,252],['#e0b14a',294,288,268]].forEach(([col,yh,y1,y2])=>{DOT(c,x,yh,6,col);c.strokeStyle='#c9a24a';c.lineWidth=1.4;[-2.5,2.5].forEach(o=>{c.beginPath();c.moveTo(x+o,y1+(yh<260?4:-4));c.lineTo(x+o+Math.sin(x)*1.5,y2);c.stroke();});});}
+  H.push({x:100,y:260,r:34,t:'Bilayer fosfolipid',d:'Membran = dua lapis fosfolipid: kepala hidrofil menghadap air, ekor hidrofob saling berhadapan di tengah. Zat larut-lemak mudah menembus; zat polar/terionisasi sulit. Protein tertanam berfungsi sebagai kanal, pembawa (carrier), atau pompa.'});
+  if(mode==='fasil'||mode==='aktif'){const xs=mode==='fasil'?[230,470]:[350];xs.forEach(x=>{c.fillStyle=mode==='fasil'?PU:GR;c.beginPath();c.ellipse(x,260,22,48,0,0,6.283);c.fill();c.fillStyle='#0d1520';c.beginPath();c.ellipse(x,260,7,36,0,0,6.283);c.fill();
+    H.push({x,y:260,r:30,t:mode==='fasil'?'Protein pembawa (carrier)':'Pompa (transpor aktif)',d:mode==='fasil'?'Difusi terfasilitasi: pembawa mengubah konformasi dan memindahkan molekul mengikuti gradien konsentrasi, tanpa energi. Dapat jenuh (saturasi), selektif, dan dapat dihambat kompetitif.':'Transpor aktif: pembawa memakai energi (ATP) untuk memindahkan obat melawan gradien konsentrasi (dari rendah ke tinggi). Selektif, jenuh, dapat dihambat kompetitif/metabolik.'});});
+    if(mode==='aktif'){T2(c,'ATP → ADP',350,324,{a:'center',s:12,c:Math.sin(T*6)>0?'#ffe08a':'#9fb0c3',b:1});}}
+  if(mode==='pino'){const ph=(T%7)/7,d=ph<.5?ph*2:1;c.strokeStyle='#e0b14a';c.lineWidth=2;
+    c.save();c.fillStyle='#0d1520';c.beginPath();c.ellipse(350,230+d*34,30*Math.min(1,d*1.6),22*d,0,0,6.283);c.fill();c.restore();
+    const vy=ph<.5?230+d*34:264+(ph-.5)*2*150,vr=ph<.3?0:22;if(vr||ph>.3){c.beginPath();c.arc(350,vy+(ph>.6?0:10),24,0,6.283);c.fillStyle='#16324a';c.fill();c.strokeStyle='#e0b14a';c.stroke();[[-8,-4],[6,-8],[2,8]].forEach(([dx,dy])=>DOT(c,350+dx,vy+dy+(ph>.6?0:10),4,BL));}
+    H.push({x:350,y:260,r:34,t:'Pinositosis (endositosis)',d:'Membran melekuk ke dalam membentuk vesikel yang membawa cairan dan makromolekul (protein, peptida besar) masuk ke sitoplasma. Memerlukan energi; terutama untuk molekul besar.'});}
+  M.forEach(p=>{if(lip)DOT(c,p.x,p.y,5,OR,'#fff');else{c.fillStyle=BL;c.fillRect(p.x-4.5,p.y-4.5,9,9);}});
+  T2(c,'LUAR SEL / lumen'+(mode==='aktif'?' (konsentrasi rendah)':' (konsentrasi tinggi)'),20,36,{s:12,c:'#9fb3c8',b:1});T2(c,'DALAM SEL / plasma'+(mode==='aktif'?' (konsentrasi tinggi)':''),20,CH-30,{s:12,c:'#9fb3c8',b:1});
+  T2(c,'Lintasan: masuk '+cnt.a+'   keluar '+cnt.b,CW-16,36,{a:'right',s:12,c:'#ffd9a0'});
+  T2(c,lip?'● larut-lemak (nonpolar)':'■ polar/hidrofilik',CW-16,CH-30,{a:'right',s:12,c:lip?OR:BL});
+}
+// ---------- 3. pH & ionisasi ----------
+function phion(c,S,T,H){
+  const type=S.type,pKa=+S.pka,pA=+S.pha,pB=7.4,iA=ion(type,pKa,pA),iB=ion(type,pKa,pB);
+  const R=type==='asam'?(1+Math.pow(10,pA-pKa))/(1+Math.pow(10,pB-pKa)):(1+Math.pow(10,pKa-pA))/(1+Math.pow(10,pKa-pB));
+  const nB=26,nA=clamp(Math.round(nB*R),1,110);
+  [[40,'Kompartemen A (pH '+pA.toFixed(1)+')',iA,nA,'#3a2a2a'],[390,'Plasma (pH 7,4)',iB,nB,'#1f2f45']].forEach(([x,t,ip,n,bg],j)=>{
+    c.fillStyle=bg;RR(c,x,70,270,250,12);c.fill();T2(c,t,x+135,92,{a:'center',s:13,b:1});
+    const r=rng(j+5);for(let i=0;i<n;i++){const ii=r()<ip/100,px=x+18+((r()*234+Math.sin(T*.8+i)*5+270)%234),py=110+((r()*190+Math.cos(T*.7+i*1.3)*5+190)%190);
+      if(ii){c.strokeStyle=BL;c.lineWidth=2;c.beginPath();c.arc(px,py,5.5,0,6.283);c.stroke();T2(c,type==='asam'?'−':'+',px,py+4,{a:'center',s:10,c:BL,b:1});}else DOT(c,px,py,5.5,OR,'#fff');}
+    // bar
+    c.fillStyle='#223347';RR(c,x,338,270,16,8);c.fill();c.fillStyle=BL;RR(c,x,338,Math.max(6,270*ip/100),16,8);c.fill();
+    T2(c,'terionisasi '+ip.toFixed(ip<10?2:1)+'%  |  tak terion '+(100-ip).toFixed(ip<10?2:1)+'%',x+135,372,{a:'center',s:12,c:'#dfe8f2'});});
+  ARW(c,312,200,386,200,OR,3);ARW(c,386,230,312,230,OR,3);T2(c,'hanya bentuk tak-terion\nyang menembus membran',349,262,{a:'center',s:10,c:OR});
+  H.push({x:349,y:215,r:40,t:'Perangkap ion (ion trapping)',d:'Bentuk tak-terion bebas melintas; bentuk terion terperangkap di sisi tempat obat lebih banyak terionisasi. Maka asam lemah menumpuk di kompartemen basa dan basa lemah menumpuk di kompartemen asam.'});
+  T2(c,'Rasio konsentrasi total A : plasma = '+(R>=100?R.toFixed(0):R.toFixed(2))+' : 1',350,410,{a:'center',s:15,b:1,c:R>1.05?'#ffb36b':R<.95?'#7fd1ff':'#6ee7a6'});
+  T2(c,type==='asam'?'Asam lemah: %terion = 100 / (1 + 10^(pKa − pH));  rasio = (1+10^(pH A − pKa)) / (1+10^(7,4 − pKa))':'Basa lemah: %terion = 100 / (1 + 10^(pH − pKa));  rasio = (1+10^(pKa − pH A)) / (1+10^(pKa − 7,4))',350,440,{a:'center',s:11,c:'#9fb3c8'});
+  T2(c,'pH = pKa + log([tak-terion]/[terion]) → untuk asam lemah (Henderson–Hasselbalch)',350,462,{a:'center',s:11,c:'#9fb3c8'});
+}
+// ---------- 4. absorpsi, first-pass, enterohepatik ----------
+let PS=[],lastSpawn=0,cs={sis:0,fes:0,rec:0};
+const ND={int:[150,380],vms:[290,440],vp:[430,380],hep:[430,190],bil:[290,130]};
+function enter(c,S,T,H){
+  const E=+S.fp/100,order=['int','vms','vp','hep','bil'];
+  if(T-lastSpawn>.45&&PS.length<70){lastSpawn=T;PS.push({s:0,p:0,k:'free'});}
+  const pts=order.map(k=>ND[k]);
+  order.forEach((k,i)=>{const a=ND[k],b=ND[order[(i+1)%5]];ARW(c,a[0]+(b[0]-a[0])*.2,a[1]+(b[1]-a[1])*.2,a[0]+(b[0]-a[0])*.8,a[1]+(b[1]-a[1])*.8,'#53677c',2);});
+  const lab={int:['INTESTIN','Absorpsi di usus halus: permukaan sangat luas (lipatan, vili, mikrovili) dan aliran darah besar; di sinilah sebagian besar obat oral diserap, termasuk asam lemah.','#b0702b'],vms:['VENA MESENTERIKA\nSUPERIOR','Darah dari usus dialirkan ke hati lewat sistem porta, bukan langsung ke sirkulasi umum.','#a63d40'],vp:['VENA PORTA','Membawa obat teserap langsung ke hati sebelum ke sirkulasi sistemik → peluang metabolisme lintas pertama (first-pass).','#a63d40'],hep:['HEPAR','Organ metabolisme utama; obat dapat dimetabolisme (first-pass) dan metabolitnya diekskresi ke empedu.','#7a4fb5'],bil:['SALURAN BILIER','Empedu membawa obat/konjugat (umumnya BM > 500) ke duodenum. Konjugat glukuronida dapat dipecah flora usus dan obat bebas diserap lagi: siklus enterohepatik.','#2d8a5f']};
+  order.forEach(k=>{const [x,y]=ND[k],[t,d,col]=lab[k];BOX(c,x-58,y-22,116,44,t,col,{s:11});H.push({x,y,r:50,t:t.replace('\n',' '),d});});
+  // partikel
+  const sp=[];PS.forEach(q=>{
+    const a=ND[order[q.s]],b=ND[order[(q.s+1)%5]];
+    let v=.35*(q.k==='sis'?1.2:1)*.016;
+    q.p+=v;
+    if(q.p>=1){q.p=0;const here=order[(q.s+1)%5];
+      if(here==='hep'){if(Math.random()<E){q.k='conj';}else{q.k='sis';q.out=1;}}
+      if(here==='bil'&&q.k==='conj'&&false){}
+      q.s=(q.s+1)%5;
+      if(q.k==='conj'&&order[q.s]==='int'){if(S.ent){q.k='free';cs.rec++;}else{q.dead=1;cs.fes++;}}
+      if(q.k==='sis'&&order[q.s]==='bil'){q.dead=1;}
+    }
+    if(q.k==='sis'&&order[q.s]==='bil'){q.dead=1;}
+  });
+  // jalur sistemik: partikel yang lolos meninggalkan hati menuju kanan
+  PS.forEach(q=>{if(q.out&&q.s===4){q.dead=1;cs.sis++;}});
+  PS=PS.filter(q=>!q.dead);
+  PS.forEach(q=>{const a=ND[order[q.s]],b=ND[order[(q.s+1)%5]];const x=a[0]+(b[0]-a[0])*q.p,y=a[1]+(b[1]-a[1])*q.p;
+    if(q.k==='conj'){c.fillStyle=BL;c.fillRect(x-4,y-4,8,8);}else DOT(c,x,y,4.5,OR,'#fff');});
+  // sirkulasi sistemik
+  ARW(c,490,190,570,160,GR,3);BOX(c,570,130,110,60,'SIRKULASI\nSISTEMIK',GR,{s:12});
+  H.push({x:625,y:160,r:50,t:'Sirkulasi sistemik',d:'Obat yang lolos dari first-pass beredar ke seluruh tubuh dan mencapai tempat kerja. Fraksi ini menentukan bioavailabilitas oral (F = 1 − E hati, bila absorpsi lengkap).'});
+  T2(c,'Bioavailabilitas oral F ≈ '+Math.round((1-E)*100)+'%',690,230,{a:'right',s:13,b:1,c:'#6ee7a6'});
+  T2(c,'Obat lolos ke sistemik: '+cs.sis,690,252,{a:'right',s:11,c:'#9fb3c8'});
+  T2(c,'Terdaur ulang (enterohepatik): '+cs.rec,690,270,{a:'right',s:11,c:'#9fb3c8'});
+  T2(c,'Keluar bersama feses: '+cs.fes,690,288,{a:'right',s:11,c:'#9fb3c8'});
+  T2(c,'● obat bebas   ■ konjugat/metabolit',30,36,{s:12,c:'#9fb3c8'});
+}
+// ---------- 5. distribusi ----------
+function distrib(c,S,T,H){
+  const fb=+S.pb/100+(S.disp?-Math.min(+S.pb/100,.5)*.6:0),fu=1-fb,k=+S.ke,Vd=.05+1.2*fu,C0=10/Vd,Cl=k*Vd,th=.693/k;
+  c.fillStyle='#4a2024';RR(c,20,90,330,100,50);c.fill();T2(c,'Kapiler (plasma)',185,84,{a:'center',s:12,c:'#ffb3b8'});
+  c.fillStyle='#173225';RR(c,20,250,330,150,12);c.fill();T2(c,'Jaringan',185,420,{a:'center',s:12,c:'#8fe0b6'});
+  const r=rng(9),n=30;
+  for(let i=0;i<n;i++){const bound=i/n<fb,x=40+((r()*290+T*(bound?14:30)+i*11)%290),yb=110+r()*60;
+    if(bound){c.strokeStyle=BL;c.lineWidth=2;c.beginPath();c.moveTo(x-6,yb+6);c.lineTo(x,yb);c.lineTo(x+6,yb+6);c.moveTo(x,yb);c.lineTo(x,yb-7);c.stroke();DOT(c,x,yb-9,3.6,OR,'#fff');}
+    else{const ph=((T*.4+i*.137)%1),yy=yb+ph*(300-yb)*.9;DOT(c,x,ph<.15?yb:yy,4.5,OR,'#fff');}}
+  H.push({x:185,y:140,r:50,t:'Albumin dan ikatan protein plasma',d:'Banyak obat berikatan reversibel dengan albumin (asam lemah) atau α1-glikoprotein asam (basa lemah). Bentuk terikat besar sehingga tidak keluar kapiler, tidak aktif, dan tidak difiltrasi; ia berfungsi sebagai depot yang melepas obat bebas ketika kadar bebas turun.'});
+  H.push({x:185,y:330,r:60,t:'Jaringan: tempat kerja dan depot',d:'Obat bebas menembus kapiler lalu terikat reseptor/jaringan (hati, ginjal, otot, lemak) bergantung perfusi, pH, afinitas, dan sawar (mis. sawar darah-otak, plasenta). Obat sangat larut-lemak menumpuk di lemak.'});
+  T2(c,'Terikat '+Math.round(fb*100)+'%  |  bebas '+Math.round(fu*100)+'%'+(S.disp?'  (ada pendesakan oleh obat lain)':''),185,222,{a:'center',s:12,c:'#dfe8f2'});
+  // grafik
+  const gx=400,gy=90,gw=270,gh=230;c.strokeStyle='#40566d';c.lineWidth=1.5;c.beginPath();c.moveTo(gx,gy);c.lineTo(gx,gy+gh);c.lineTo(gx+gw,gy+gh);c.stroke();
+  T2(c,'Kadar plasma',gx,gy-8,{s:11,c:'#9fb3c8'});T2(c,'waktu (jam) →',gx+gw,gy+gh+16,{a:'right',s:11,c:'#9fb3c8'});
+  [[1,OR,'total'],[fu,'#7fd1ff','bebas']].forEach(([m,col,lb],j)=>{c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();for(let t=0;t<=24;t+=.5){const y=C0*m*Math.exp(-k*t),px=gx+gw*t/24,py=gy+gh-gh*Math.min(1,y/C0);t?c.lineTo(px,py):c.moveTo(px,py);}c.stroke();T2(c,lb,gx+gw-4,gy+14+j*14,{a:'right',s:11,c:col});});
+  const tx=gx+gw*Math.min(24,th)/24;c.setLineDash([4,4]);c.strokeStyle='#ffe08a';c.beginPath();c.moveTo(tx,gy+gh-gh/2);c.lineTo(tx,gy+gh);c.moveTo(gx,gy+gh-gh/2);c.lineTo(tx,gy+gh-gh/2);c.stroke();c.setLineDash([]);T2(c,'t½ = '+th.toFixed(1)+' jam',tx+4,gy+gh-8,{s:11,c:'#ffe08a'});
+  H.push({x:tx,y:gy+gh-gh/2,r:18,t:'Waktu paruh (t½)',d:'Waktu agar kadar plasma turun separuh: t½ = 0,693 / k. Setelah ± 5 t½ lebih dari 95% obat telah dieliminasi.'});
+  T2(c,'Vd ≈ '+Vd.toFixed(2)+' L/kg  (model: Vp + Vt·fu/fut)',gx,gy+gh+38,{s:12,c:'#dfe8f2'});
+  T2(c,'Klirens Cl = k × Vd = '+Cl.toFixed(3)+' L/jam/kg',gx,gy+gh+58,{s:12,c:'#dfe8f2'});
+  T2(c,'Dosis IV contoh 10 mg/kg → C0 = dosis/Vd = '+C0.toFixed(1)+' mg/L',gx,gy+gh+78,{s:12,c:'#9fb3c8'});
+}
+// ---------- 6. metabolisme ----------
+let MP=[];
+function metab(c,S,T,H){
+  const sp=({normal:1,induksi:2.2,inhibisi:.3})[S.enz],kind=S.jenis;
+  c.fillStyle='#1b2536';RR(c,50,95,600,300,18);c.fill();c.strokeStyle='#2f4560';c.lineWidth=2;c.stroke();T2(c,'Hepatosit (sel hati) — retikulum endoplasma halus',350,85,{a:'center',s:12,c:'#9fb3c8',b:1});
+  const bx=[[110,'FASE I\n(fungsionalisasi)\nCYP450 — oksidasi,\nreduksi, hidrolisis','#7a4fb5'],[300,'FASE II\n(konjugasi)\nglukuronida, sulfat,\nasetat, asam amino,\nglutation','#2d8a5f']];
+  bx.forEach(([x,t,col],i)=>{BOX(c,x,150,160,130,t,col,{s:12,al:S.enz==='inhibisi'&&i===0?.5:1});});
+  H.push({x:190,y:215,r:70,t:'Fase I — sitokrom P450 (MFO)',d:'Sistem oksidase fungsi-campuran di retikulum endoplasma halus (mikrosom) hati. Menambah/membuka gugus fungsi (-OH, -NH2, -COOH): oksidasi (terbanyak), reduksi, hidrolisis. Hasilnya biasanya lebih polar dan kurang aktif, tetapi ada prodrug yang justru menjadi aktif, dan ada metabolit reaktif/toksik.'});
+  H.push({x:380,y:215,r:70,t:'Fase II — konjugasi',d:'Obat atau metabolit fase I digabung dengan senyawa endogen (asam glukuronat, sulfat, asetat, asam amino, glutation) sehingga jauh lebih polar dan mudah dieksresi. Beberapa obat hanya mengalami fase II saja, sebagian hanya fase I.'});
+  ARW(c,270,215,300,215,'#9fb0c3',2.5);ARW(c,460,215,520,215,'#9fb0c3',2.5);
+  BOX(c,520,175,110,80,'Metabolit polar\n→ ginjal / empedu',BL,{s:11});
+  H.push({x:575,y:215,r:50,t:'Ekskresi metabolit',d:'Metabolit polar larut-air diekskresi lewat ginjal (urine) atau empedu (feses). Metabolit larut-lemak yang tidak diubah akan direabsorpsi di tubulus ginjal sehingga menetap lama.'});
+  ARW(c,50,215,110,215,OR,3);T2(c,'obat lipofilik\n(nonpolar)',58,262,{s:11,c:OR});
+  // aliran
+  if(Math.random()<.05*sp&&MP.length<45)MP.push({p:0});
+  MP.forEach(m=>{m.p+=.0035*sp*(1+(m.j||0));});MP=MP.filter(m=>m.p<1);
+  MP.forEach(m=>{const stage=m.p<.35?0:m.p<.65?1:2,[x,y]=poly([[60,215],[110,215],[190,215],[300,215],[380,215],[470,215],[575,215]],m.p);let yy=y+Math.sin(m.p*60)*14;
+    if(stage===0)DOT(c,x,yy,6,OR,'#fff');else if(stage===1){DOT(c,x,yy,5,'#d9b25a','#fff');T2(c,'OH',x,yy-8,{a:'center',s:9,c:'#fff'});}else{const col=kind==='aktif'?'#7a8ea3':kind==='pro'?GR:RD;c.fillStyle=col;c.fillRect(x-5,yy-5,10,10);}});
+  // meter kadar obat induk
+  const lvl=clamp(1/sp,.15,1.6);c.fillStyle='#223347';RR(c,60,415,260,16,8);c.fill();c.fillStyle=OR;RR(c,60,415,Math.max(8,260*lvl/1.6),16,8);c.fill();
+  T2(c,'Kadar obat induk (relatif)',60,410,{s:11,c:'#9fb3c8'});
+  T2(c,{aktif:'Hasil: obat aktif → metabolit inaktif (kerja berakhir)',pro:'Hasil: prodrug (tak aktif) → metabolit AKTIF (efek muncul setelah metabolisme)',toksik:'Hasil: obat → metabolit reaktif TOKSIK (mis. kerusakan hati)'}[kind],340,448,{s:12,c:kind==='toksik'?'#ff9b8a':'#ffd9a0'});
+}
+// ---------- 7. ginjal ----------
+let NP=[];
+const ART=[[20,60],[110,60],[150,120],[150,170],[110,200],[90,240],[200,290],[330,330],[470,330],[640,330]];
+const TUB=[[210,150],[250,190],[250,240],[290,310],[330,420],[390,430],[430,330],[480,200],[560,170],[640,250],[670,330],[670,470]];
+function ginjal(c,S,T,H){
+  const m=S.mode,fb=+S.fb/100,pHu=+S.phu,nonion=100-ion('asam',5,pHu);
+  const fu=m==='inulin'?1:m==='sekresi'?1:1-fb,Pfilt=fu*1,Pre=m==='reabs'?nonion/100*.9:0,Psec=m==='sekresi'?.8:0;
+  // gambar
+  c.lineCap='round';c.lineJoin='round';
+  c.strokeStyle='#8f2d36';c.lineWidth=10;c.beginPath();ART.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();
+  c.fillStyle='#2b3d56';c.beginPath();c.arc(150,150,56,0,6.283);c.fill();c.strokeStyle='#6a8bb3';c.lineWidth=3;c.stroke();
+  c.strokeStyle='#a33a45';c.lineWidth=5;c.beginPath();for(let a=0;a<12;a+=.2)c.lineTo(150+Math.cos(a)*(8+a*3.4),150+Math.sin(a)*(8+a*3.4));c.stroke();
+  c.strokeStyle='#4a89c0';c.lineWidth=14;c.beginPath();TUB.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();
+  c.strokeStyle='#2a5a82';c.lineWidth=8;c.stroke();
+  T2(c,'Arteriola aferen',24,48,{s:11,c:'#ffb3b8'});T2(c,'Glomerulus\n+ kapsul Bowman',150,224,{a:'center',s:11,c:'#9fb3c8'});T2(c,'Tubulus proksimal',262,232,{s:11,c:'#9fd1ff'});T2(c,'Lengkung Henle',350,448,{s:11,c:'#9fd1ff'});T2(c,'Tubulus distal',480,196,{s:11,c:'#9fd1ff'});T2(c,'Duktus\nkolektivus',678,300,{a:'right',s:11,c:'#9fd1ff'});T2(c,'→ URINE',664,490,{a:'right',s:12,c:'#ffd9a0',b:1});T2(c,'Kapiler peritubular → vena renalis',640,352,{a:'right',s:11,c:'#ffb3b8'});
+  [[150,150,'1 Filtrasi','Filtrasi glomerulus: tekanan hidrostatik mendorong plasma bebas-protein (BM < ± 68.000) melalui pori endotel ke kapsul Bowman. GFR manusia ± 120–130 mL/menit; obat yang terikat protein plasma tidak difiltrasi. GFR diukur dengan inulin atau kreatinin.'],[260,260,'2 Reabsorpsi','Reabsorpsi tubulus: bentuk tak-terion larut-lemak berdifusi pasif kembali ke darah. Karena itu pH urin mengubah ekskresi asam/basa lemah. Beberapa zat juga direabsorpsi aktif.'],[320,350,'3 Sekresi aktif','Sekresi tubulus (terutama proksimal): pembawa memindahkan obat dari kapiler peritubular ke lumen dengan energi, melawan gradien, dan dapat menjenuh/berkompetisi. Contoh: p-aminohipurat (PAH), diodrast, penisilin, probenesid.'],[640,260,'4 Ekskresi','Ekskresi = Filtrasi − Reabsorpsi + Sekresi. Yang tersisa di tubulus keluar sebagai urine.']].forEach(([x,y,t,d])=>{DOT(c,x+(t[0]==='1'?-64:0),y,13,'#16324a','#ffe08a');T2(c,t[0],x+(t[0]==='1'?-64:0),y+4,{a:'center',s:13,b:1,c:'#ffe08a'});H.push({x:x+(t[0]==='1'?-64:0),y,r:16,t,d});});
+  // partikel
+  if(Math.random()<.35&&NP.length<60){const j=[];if(Math.random()<Pfilt){j.push({p:'A',at:.3,to:'T',p2:.0});if(Math.random()<Pre)j.push({p:'T',at:.5,to:'A',p2:.62});}else if(Math.random()<Psec)j.push({p:'A',at:.62,to:'T',p2:.2});NP.push({path:'A',p:0,j});}
+  const PA=ART,PT=TUB;
+  NP.forEach(q=>{q.p+=.0065;const jj=q.j[0];if(jj&&jj.p===q.path&&q.p>=jj.at){q.path=jj.to;q.p=jj.p2;q.j.shift();}});NP=NP.filter(q=>q.p<1);
+  NP.forEach(q=>{const [x,y]=poly(q.path==='A'?PA:PT,q.p);DOT(c,x,y,3.8,OR,'#fff');});
+  // klirens
+  const GFR=125,filt=GFR*Pfilt,reab=filt*Pre,sec=m==='sekresi'?600:0,Cl=m==='sekresi'?sec:filt-reab,ratio=Cl/GFR;
+  c.fillStyle='#10202f';RR(c,16,452,330,54,8);c.fill();
+  T2(c,'Klirens ≈ '+Cl.toFixed(0)+' mL/menit  |  Cl obat/Cl inulin = '+ratio.toFixed(2),24,472,{s:12,b:1,c:ratio<.98?'#7fd1ff':ratio>1.02?'#ffb36b':'#6ee7a6'});
+  T2(c,ratio<.98?'< 1 → obat direabsorpsi sebagian (atau terikat protein)':ratio>1.02?'> 1 → obat disekresi aktif':'= 1 → hanya difiltrasi',24,494,{s:11,c:'#dfe8f2'});
+}
+const FM={
+ nasib:{k:'nasib',t:'Nasib obat dalam tubuh',ctl:[{k:'rute',label:'Rute',type:'sel',val:'oral',opts:[['oral','Oral'],['iv','Intravena']]}],draw:nasib,text:()=>'<p>Setelah obat diberikan, ia mengalami <b>fase biofarmasi</b> (pelepasan, pelarutan, absorpsi) lalu <b>fase farmakokinetik</b> (distribusi, metabolisme, ekskresi). Metabolisme dan ekskresi bersama disebut eliminasi.</p>'},
+ membran:{k:'membran',t:'Membran sel dan transpor',ctl:[{k:'mode',label:'Mekanisme',type:'sel',val:'pasif',opts:[['pasif','Difusi pasif'],['fasil','Difusi terfasilitasi'],['aktif','Transpor aktif'],['pino','Pinositosis']]},{k:'grad',label:'Gradien',type:'range',min:0,max:100,step:5,val:70},{k:'lip',label:'Larut-lemak',type:'chk',val:true}],init:()=>{},draw:membran,onctl:(S,k)=>{if(k==='mode'||k==='grad')memInit(S);},
+  text:S=>({pasif:'<p><b>Difusi pasif</b> mengikuti gradien konsentrasi, tanpa energi dan tanpa pembawa; laju ∝ gradien (hukum Fick), luas membran, dan kelarutan lemak. Jalur utama sebagian besar obat. Zat polar hampir tidak lewat.</p>',fasil:'<p><b>Difusi terfasilitasi</b>: seperti difusi pasif (mengikuti gradien, tanpa energi) tetapi memakai protein pembawa; selektif dan dapat jenuh.</p>',aktif:'<p><b>Transpor aktif</b>: melawan gradien dengan energi (ATP) dan pembawa; selektif, dapat jenuh dan dihambat. Contoh: transpor aktif di tubulus ginjal dan hati.</p>',pino:'<p><b>Pinositosis</b>: sel “meminum” cairan dan molekul besar dengan membentuk vesikel dari membran.</p>'})[S.mode]+'<p class="kv">Membran biologis (model mosaik cair): dua lapis fosfolipid dengan protein; lapisan lipid menjadi sawar bagi zat polar, sedangkan protein berfungsi sebagai pengatur masuk-keluarnya zat.</p>'},
+ ph:{k:'ph',t:'pH, pKa dan ionisasi',ctl:[{k:'type',label:'Obat',type:'sel',val:'asam',opts:[['asam','Asam lemah (mis. salisilat)'],['basa','Basa lemah (mis. morfin)']]},{k:'pka',label:'pKa',type:'range',min:2,max:10,step:.5,val:3.5},{k:'pha',label:'pH kompartemen A',type:'range',min:1,max:8,step:.1,val:2}],draw:phion,
+  text:()=>'<p>Fraksi tak-terion (larut-lemak) menentukan kemampuan menembus membran. Ubah pH kompartemen A untuk meniru lambung (pH 1–2), usus, atau urine (pH 4,5–8).</p><p class="kv"><b>Contoh (diadaptasi dari Tabel 2.2 buku ajar): % asam lemah terionisasi menurut pH urin</b></p><table class="tbl"><tr><th>pH urin</th><th>pKa = 3</th><th>pKa = 5</th></tr><tr><td>7,4</td><td>100,00</td><td>99,60</td></tr><tr><td>5,0</td><td>99,00</td><td>50,00</td></tr><tr><td>4,0</td><td>91,00</td><td>9,10</td></tr><tr><td>3,0</td><td>50,00</td><td>0,99</td></tr></table><p class="kv">Penerapan: urin dibuat basa mempercepat ekskresi asam lemah (mis. keracunan salisilat), urin asam mempercepat ekskresi basa lemah. Herbivora umumnya berurin basa, karnivora berurin asam.</p>'},
+ enter:{k:'enter',t:'Absorpsi, first-pass dan siklus enterohepatik',ctl:[{k:'fp',label:'Ekstraksi hati (first-pass) %',type:'range',min:0,max:95,step:5,val:50},{k:'ent',label:'Siklus enterohepatik',type:'chk',val:true}],draw:enter,onctl:()=>{cs={sis:0,fes:0,rec:0};PS=[];},
+  text:()=>'<p>Absorpsi oral dipengaruhi tiga faktor besar: sifat fisika-kimia obat dan membran, serta aliran darah. Obat teserap melewati hati terlebih dulu; bagian yang dimetabolisme hati sebelum mencapai sirkulasi umum disebut efek lintas pertama.</p><p class="kv">Konjugat yang diekskresi lewat empedu dapat dihidrolisis flora usus, diserap kembali, dan memperpanjang kerja obat. Pada ruminansia, mikroba rumen dapat mereduksi/menghidrolisis obat oral sebelum diserap.</p>'},
+ distrib:{k:'distrib',t:'Distribusi, ikatan protein, kurva kadar-waktu',ctl:[{k:'pb',label:'Ikatan protein %',type:'range',min:0,max:99,step:1,val:80},{k:'ke',label:'k eliminasi /jam',type:'range',min:.05,max:.6,step:.05,val:.2},{k:'disp',label:'Didesak obat lain',type:'chk',val:false}],draw:distrib,
+  text:()=>'<p>Hanya obat bebas yang berdistribusi ke jaringan, bekerja, dan dieliminasi. Distribusi ditentukan perfusi jaringan, pH, ikatan protein, afinitas jaringan, dan koefisien partisi lemak. Persentase ikatan yang tinggi + pendesakan oleh obat lain → kadar bebas naik mendadak (risiko toksisitas).</p><p class="kv">Rumus: dDu/dt = Cp·K·Vd; klirens Cl = K·Vd; t½ = 0,693/k.</p>'},
+ metab:{k:'metab',t:'Metabolisme obat (hati)',ctl:[{k:'enz',label:'Enzim',type:'sel',val:'normal',opts:[['normal','Normal'],['induksi','Diinduksi (mis. fenobarbital)'],['inhibisi','Dihambat (mis. ketokonazol)']]},{k:'jenis',label:'Hasil',type:'sel',val:'aktif',opts:[['aktif','Aktif → inaktif'],['pro','Prodrug → aktif'],['toksik','→ metabolit toksik']]}],draw:metab,
+  text:S=>'<p>Metabolisme (biotransformasi) mengubah obat lipofilik menjadi lebih polar. <b>Fase I</b>: oksidasi, reduksi, hidrolisis (sistem CYP450). <b>Fase II</b>: konjugasi (glukuronida, sulfat, asetat, asam amino, glutation). Enzim mikrosom ada di retikulum endoplasma halus hati; enzim nonmikrosom (esterase, dll.) ada di sitosol, mitokondria, plasma, dan jaringan lain.</p>'+({normal:'',induksi:'<p class="kv"><b>Induksi enzim</b>: pemberian bersama zat penginduksi mempercepat metabolisme obat lain. Contoh: fenobarbital menginduksi CYP sehingga dosis warfarin harus dinaikkan; bila fenobarbital dihentikan, dosis warfarin harus diturunkan kembali agar tidak berdarah.</p>',inhibisi:'<p class="kv"><b>Inhibisi enzim</b>: metabolisme melambat → kadar dan efek obat induk naik, risiko toksik. Bisa kompetitif (substrat sama) atau lewat pengikatan enzim.</p>'})[S.enz]+'<p class="kv"><b>Perbedaan spesies:</b> kucing sangat lemah mengkonjugasi dengan glukuronat (parasetamol/asetaminofen sangat toksik); anjing tidak mampu mengasetilasi gugus amina aromatik; ruminansia memetabolisme obat oral di rumen. Faktor lain: umur (neonatus belum matang), jenis kelamin, kebuntingan, gizi, genetik (polimorfisme: asetilator cepat/lambat), penyakit hati, dan zat lingkungan.</p>'},
+ ginjal:{k:'ginjal',t:'Eliminasi ginjal dan klirens',ctl:[{k:'mode',label:'Penanganan',type:'sel',val:'inulin',opts:[['inulin','Hanya difiltrasi (inulin)'],['reabs','Difiltrasi + direabsorpsi (asam lemah pKa 5)'],['sekresi','Disekresi aktif (PAH)']]},{k:'fb',label:'Ikatan protein %',type:'range',min:0,max:95,step:5,val:0},{k:'phu',label:'pH urin',type:'range',min:4.5,max:8,step:.5,val:6}],draw:ginjal,
+  text:()=>'<p>Ginjal ialah rute eliminasi utama untuk obat larut-air. <b>Ekskresi = Filtrasi − Reabsorpsi + Sekresi.</b> Klirens (Cl) = volume plasma yang dibersihkan dari obat per satuan waktu: <b>Cl = (U × V) / P</b>, atau Cl = (laju filtrasi + laju sekresi − laju reabsorpsi) / Cp.</p><table class="tbl"><tr><th>Rasio Cl obat / Cl inulin</th><th>Mekanisme</th></tr><tr><td>&lt; 1</td><td>Direabsorpsi sebagian</td></tr><tr><td>= 1</td><td>Hanya difiltrasi</td></tr><tr><td>&gt; 1</td><td>Disekresi aktif</td></tr></table><p class="kv">Aliran plasma ginjal efektif (ERPF) manusia ± 425–650 mL/menit; ginjal menerima ± 20% curah jantung. Rute lain: empedu (konjugat, siklus enterohepatik), paru (gas dan zat mudah menguap), air susu/liur/air mata/keringat/rambut, dan feses (obat yang tidak diserap atau disekresi usus).</p><p class="kv">Rasio distribusi asam lemah urin : plasma U/P = (1+10^(pH urin−pKa)) / (1+10^(pH plasma−pKa)).</p>'}
+};
+memInit({mode:'pasif',grad:70});
+topicTab({id:'farma',title:'Farmakologi',scenes:[FM.nasib,FM.membran,FM.ph,FM.enter,FM.distrib,FM.metab,FM.ginjal],
+ summary:['Nasib obat: pelepasan → pelarutan → absorpsi (fase biofarmasi), lalu distribusi → metabolisme → ekskresi (fase farmakokinetik).','Membran biologis: bilayer fosfolipid dengan protein; zat larut-lemak lewat difusi pasif, selebihnya lewat pembawa (terfasilitasi/aktif) atau pinositosis.','Persamaan Henderson–Hasselbalch menentukan fraksi tak-terion; asam lemah menumpuk di sisi basa, basa lemah di sisi asam.','Obat teserap di usus masuk vena porta ke hati sehingga ada efek lintas pertama; konjugat dalam empedu dapat didaur ulang (siklus enterohepatik).','Hanya obat bebas yang berdistribusi, aktif, dan dieliminasi; ikatan protein tinggi → pendesakan obat berbahaya.','Metabolisme: fase I (CYP450: oksidasi, reduksi, hidrolisis) dan fase II (konjugasi); dipengaruhi induksi/inhibisi enzim, genetik, umur, penyakit, spesies.','Ginjal: filtrasi + sekresi − reabsorpsi; klirens Cl = U·V/P; pH urin mengubah reabsorpsi asam/basa lemah.','Cl = K·Vd dan t½ = 0,693/k.'],
+ quiz:[{q:'Urutan fase yang benar pada pemberian oral ialah…',o:['Distribusi → absorpsi → pelepasan','Pelepasan → pelarutan → absorpsi','Ekskresi → metabolisme → absorpsi','Absorpsi → pelarutan → pelepasan'],a:1,e:'Obat harus lepas dari sediaan dan larut dulu sebelum diserap.'},
+ {q:'Mekanisme yang bergerak melawan gradien konsentrasi dan memakai ATP ialah…',o:['Difusi pasif','Difusi terfasilitasi','Transpor aktif','Filtrasi'],a:2,e:'Transpor aktif membutuhkan energi dan pembawa.'},
+ {q:'Asam lemah (pKa 3) pada pH 7,4 terionisasi sekitar…',o:['0%','50%','90%','≈ 100%'],a:3,e:'100/(1+10^(3−7,4)) ≈ 100%.'},
+ {q:'Agar ekskresi asam lemah lewat urin meningkat, urin sebaiknya dibuat…',o:['Asam','Basa','Tidak berubah','Pekat'],a:1,e:'Pada urin basa asam lemah terionisasi, tak direabsorpsi, dan keluar lebih cepat.'},
+ {q:'Efek lintas pertama terjadi karena obat dari usus…',o:['Langsung ke jantung','Masuk vena porta menuju hati','Diserap lewat kulit','Hanya diekskresi lewat paru'],a:1,e:'Hati memetabolisme obat sebelum mencapai sirkulasi sistemik.'},
+ {q:'Siklus enterohepatik memperpanjang kerja obat karena…',o:['Obat tidak diserap','Konjugat dari empedu dihidrolisis lalu diserap lagi','Ginjal berhenti bekerja','Albumin turun'],a:1,e:'Flora usus melepas obat bebas dari konjugat sehingga dapat direabsorpsi.'},
+ {q:'Fenobarbital diberikan bersama warfarin. Yang terjadi ialah…',o:['Metabolisme warfarin melambat','Metabolisme warfarin dipercepat (induksi enzim), dosis harus dinaikkan','Tidak ada pengaruh','Warfarin menjadi toksik langsung'],a:1,e:'Fenobarbital menginduksi enzim mikrosom sehingga efek warfarin menurun.'},
+ {q:'Rasio klirens obat/inulin lebih dari 1 menunjukkan…',o:['Reabsorpsi','Hanya filtrasi','Sekresi aktif','Ikatan protein tinggi'],a:2,e:'Obat dibersihkan lebih banyak daripada yang terfiltrasi karena disekresi aktif.'},
+ {q:'Obat yang terikat protein plasma…',o:['Mudah difiltrasi glomerulus','Tidak difiltrasi dan tidak aktif selama terikat','Selalu lebih aktif','Langsung dimetabolisme'],a:1,e:'Hanya fraksi bebas yang difiltrasi, berdistribusi, dan aktif.'},
+ {q:'Hewan yang sangat lemah mengkonjugasi glukuronat sehingga rentan keracunan parasetamol ialah…',o:['Anjing','Sapi','Kucing','Kuda'],a:2,e:'Kucing kekurangan jalur glukuronidasi tertentu (UGT).'}],
+ src:['Buku ajar farmasi/biofarmasi milik penulis: Bab 2 “Perjalanan Obat Peroral dalam Tubuh” (nasib obat, absorpsi, distribusi, metabolisme, eliminasi, klirens, siklus enterohepatik) dan Bab 3 “Pelepasan dan Pelarutan Sediaan Obat Oral”; gambar diolah ulang secara digital.','Aiache JM, Devissaguet JPh, Guyot-Hermann AM. <i>Biofarmasetika (Farmasetika 2)</i>, terj. Wiji Soeratri, Nanizar Zaman Joenoes. Surabaya: Airlangga University Press; 1993.','Departemen Farmakologi dan Terapeutik FKUI. <i>Farmakologi dan Terapi</i>, edisi 4. Jakarta: Gaya Baru; 1995.','Agur AMR, Moore KL. <i>Essential Clinical Anatomy</i>. Lippincott Williams &amp; Wilkins; 2007.','Riviere JE, Papich MG (eds). <i>Veterinary Pharmacology and Therapeutics</i> (Adams\'). Wiley-Blackwell.','Plumb DC. <i>Plumb\'s Veterinary Drug Handbook</i>. Wiley-Blackwell.']});
+};
+
+/* ---------- Imunologi: imunodefisiensi dan imunologi saluran cerna ---------- */
+inits.imun=function(){
+const OR='#f2a03d',BL='#5aa9ff',GR='#4cc38a',RD='#e5646b',PU='#a98ae8',YL='#f4df7a';
+// ---------- 1. peta cacat imun (Gbr. 19.1) ----------
+const DEF=[
+ {id:'dig',x:250,y:78,a:'DG',t:'Sindrom DiGeorge (hipoplasia timus)',pt:['virus','jamur','protozoa'],d:'Delesi kromosom 22q11.2: timus (dan paratiroid) gagal berkembang pada minggu ke-12 kehamilan. Sel T rendah, sel B normal; hipokalsemia, kelainan jantung dan wajah. Bila timus tidak ada sama sekali, infeksi virus/jamur/Pneumocystis berat. Terapi: kalsium dan vitamin D, profilaksis, transplantasi timus/sumsum tulang. Percobaan klasik pada ayam: timektomi menghilangkan sel T tanpa menghilangkan antibodi.'},
+ {id:'scid',x:150,y:190,a:'SCID',t:'SCID (gabungan sel T dan B)',pt:['virus','jamur','protozoa','bakteri','intra'],d:'Kelompok cacat genetik sel T, B, dan NK; ± 50% X-linked (rantai γ bersama reseptor IL-2, -4, -7, -9, -15). Bayi <3 bulan: kandidiasis mulut, diare, gagal tumbuh, pneumonia Pneumocystis. Terapi: transplantasi sumsum tulang (HLA identik), terapi gen ex vivo; hindari vaksin hidup dan transfusi tanpa iradiasi (GVHD). Hewan: foal Arab (mutasi DNA-PKcs, resesif), X-SCID pada Basset Hound dan Cardigan Welsh Corgi.'},
+ {id:'xla',x:150,y:340,a:'XLA',t:'Agamaglobulinemia X-linked (Bruton)',pt:['bakteri','virus'],d:'Mutasi gen BTK: sel pre-B tidak matang menjadi sel B. Sel B darah hampir nol, semua kelas imunoglobulin sangat rendah (<2 g/L). Infeksi piogenik berulang (Haemophilus, Streptococcus pneumoniae, Staphylococcus) mulai setelah usia 5–6 bulan saat IgG ibu habis; enterovirus dan Giardia. Terapi: IVIG seumur hidup. Hewan: agamaglobulinemia dilaporkan pada anak kuda jantan.'},
+ {id:'higm',x:330,y:340,a:'HIGM',t:'Sindrom hyper-IgM',pt:['bakteri'],d:'Cacat CD40L pada sel T (X-linked) atau CD40: sel B tidak dapat beralih kelas. IgM normal/tinggi, IgG/IgA/IgE rendah. Infeksi piogenik dan oportunistik (Pneumocystis).'},
+ {id:'cvid',x:455,y:340,a:'CVID',t:'Imunodefisiensi variabel umum (CVID)',pt:['bakteri','virus'],d:'Hipogamaglobulinemia (IgG <3 g/L, juga IgA) dengan jumlah sel B normal–rendah; biasanya muncul remaja–dewasa. Infeksi sinopulmoner berulang, giardiasis, penyakit autoimun, dan risiko limfoma. Penyebab heterogen. Terapi: IVIG dan antibiotik.'},
+ {id:'iga',x:560,y:340,a:'IgAD',t:'Defisiensi IgA selektif',pt:['bakteri'],d:'IgA serum <0,05 g/L dengan IgG dan IgM normal; imunodefisiensi primer tersering (± 1/600 orang Eropa utara). Sering tanpa gejala; dapat berupa infeksi mukosa, alergi, autoimun. Pasien dapat membentuk anti-IgA sehingga transfusi darah berisiko anafilaksis (gunakan sel darah cuci). Hewan: German Shepherd, Shar-pei, Beagle.'},
+ {id:'cgd',x:380,y:458,a:'CGD',t:'Penyakit granulomatosa kronik',pt:['jamur','bakteri'],d:'Cacat NADPH oksidase fagosit (sekitar dua pertiga X-linked, gp91phox): neutrofil menelan tetapi tidak dapat membunuh mikroba. Abses, granuloma, osteomielitis oleh Staphylococcus aureus dan jamur (Aspergillus). Uji NBT tidak berubah menjadi biru. Terapi: antibiotik/antijamur profilaksis, IFN-γ, transplantasi sumsum.'},
+ {id:'lad',x:450,y:458,a:'LAD',t:'Defisiensi adhesi leukosit (LAD-1)',pt:['bakteri'],d:'Cacat integrin β2 (CD18): neutrofil tidak dapat menempel dan bermigrasi keluar pembuluh. Lepas tali pusat terlambat, infeksi berat tanpa nanah, neutrofilia darah. Hewan: CLAD pada Irish Setter; BLAD pada sapi Holstein (mutasi CD18).'},
+ {id:'tapc',x:560,y:140,a:'IFNγR',t:'Cacat interaksi sel T–APC (IFN-γR / IL-12)',pt:['intra'],d:'Defisiensi reseptor IFN-γ atau IL-12/IL-12R memutus lingkar aktivasi makrofag: rentan terhadap mikobakteria (termasuk BCG) dan Salmonella nontifoid. Terapi: IFN-γ rekombinan atau IL-12 sesuai cacatnya.'},
+ {id:'comp',x:580,y:458,a:'C',t:'Defisiensi komplemen',pt:['bakteri','neis'],d:'Jalur klasik (C1q, C1r/s, C2, C4): penyakit mirip lupus (SLE) dan infeksi piogenik. C3: infeksi bakteri piogenik berat. Kompleks serangan membran (C5–C9) dan faktor D/properdin: infeksi Neisseria. Defisiensi C1 inhibitor: edema angio herediter. Hewan: defisiensi C3 pada Brittany Spaniel.'}];
+const PT=[['semua','Semua patogen'],['bakteri','Bakteri piogenik (Haemophilus, Strep. pneumoniae, Staph. aureus)'],['virus','Virus (CMV, herpes zoster, enterovirus)'],['jamur','Jamur (Candida)'],['intra','Mikroba intraseluler (mikobakteria, Salmonella)'],['protozoa','Protozoa (Pneumocystis, Toxoplasma)'],['neis','Neisseria']];
+function peta(c,S,T,H){
+  const box=(x,y,w,h,t,col)=>BOX(c,x,y,w,h,t,col,{s:11});
+  box(30,180,110,46,'Sumsum tulang\n(sel induk)','#8a6a3a');box(210,40,70,34,'Timus','#2d8a5f');
+  box(200,175,90,36,'Pre-T → sel T\nnaif','#4a6fa5');box(330,175,100,36,'Sel T efektor\n(CD4, CD8)','#4a6fa5');
+  box(200,290,90,36,'Pre-B → sel B','#4a6fa5');box(330,290,100,36,'Sel B naif\n→ kelas-switch','#4a6fa5');box(470,290,110,36,'Sel plasma\n(IgG, IgA, IgM)','#4a6fa5');
+  box(330,400,100,36,'Fagosit\n(neutrofil)','#a63d40');box(500,400,160,36,'Komplemen & lektin','#7a4fb5');box(480,175,120,36,'Makrofag / APC','#a98ae8');
+  ARW(c,140,200,200,193,'#8fa3b8');ARW(c,140,210,200,305,'#8fa3b8');ARW(c,245,175,245,74,'#8fa3b8');ARW(c,290,193,330,193,'#8fa3b8');ARW(c,290,308,330,308,'#8fa3b8');ARW(c,430,308,470,308,'#8fa3b8');ARW(c,430,193,480,193,'#8fa3b8');ARW(c,85,226,85,418,'#8fa3b8');ARW(c,85,418,330,418,'#8fa3b8');
+  T2(c,'Pembentukan sel imun',20,28,{s:11,c:'#9fb3c8',b:1});T2(c,'Pembentukan sel efektor',330,28,{s:11,c:'#9fb3c8',b:1});
+  const hl=S.pat;
+  DEF.forEach(d=>{const on=hl==='semua'||d.pt.includes(hl),p=on&&hl!=='semua'?3*Math.sin(T*5):0;
+    c.globalAlpha=on?1:.22;DOT(c,d.x,d.y,19+p,'#7a1d22','#ff8a8a');T2(c,d.a,d.x,d.y+4,{a:'center',s:d.a.length>3?9:11,b:1,c:'#fff'});c.globalAlpha=1;
+    H.push({x:d.x,y:d.y,r:21,t:d.t,d:d.d});});
+  T2(c,'Lingkaran merah = tempat cacat imun primer. Pilih jenis patogen untuk melihat cacat mana yang rentan.',20,CH-14,{s:11,c:'#ffd9a0'});
+}
+// ---------- 2. uji laboratorium (Gbr. 19.2 dan 19.3) ----------
+function lab(c,S,T,H){
+  const q=+S.conc/100;
+  c.fillStyle='#3a2a24';RR(c,20,40,320,190,10);c.fill();T2(c,'(a) Imunodifusi radial',30,34,{s:12,b:1,c:'#ffd9a0'});
+  [[80,'Std 1',.25],[170,'Std 2',.5],[260,'Std 3',1],[170,'Uji',q]].forEach(([x,n,v],i)=>{const y=i<3?100:180,r=10+26*Math.sqrt(v)*.9;
+    c.strokeStyle='#d98a8a';c.lineWidth=2;c.beginPath();c.arc(x,y,r,0,6.283);c.stroke();c.fillStyle=i===3?'#ffd45a':'#2a1a14';c.beginPath();c.arc(x,y,6,0,6.283);c.fill();T2(c,n,x,y+(i<3?58:44),{a:'center',s:10,c:'#e8d0c0'});
+    H.push({x,y,r:r+4,t:'Cincin presipitasi '+n,d:'Antigen (mis. IgG) berdifusi ke gel agarosa berisi antibodi spesifik; ring presipitat terbentuk dan membesar selama 24–48 jam. Diameter² sebanding dengan kadar analit; kadar sampel dibaca dari kurva standar.'});});
+  c.fillStyle='#1b2a3a';RR(c,360,40,320,190,10);c.fill();T2(c,'(b) Nefelometri',370,34,{s:12,b:1,c:'#9fd1ff'});
+  c.fillStyle='#2f5a7a';RR(c,460,90,70,110,6);c.fill();c.strokeStyle='#7fb3dd';c.lineWidth=2;c.stroke();T2(c,'kuvet',495,215,{a:'center',s:10,c:'#9fd1ff'});
+  ARW(c,380,145,460,145,'#ff5252',3);T2(c,'laser',385,132,{s:10,c:'#ff8a8a'});
+  const n=Math.round(q*20);for(let i=0;i<n;i++){const a=i*2.3+T*.6;DOT(c,495+Math.cos(a)*(8+i%4*7),145+Math.sin(a*1.3)*(10+i%7*8),3.2,YL,'#fff');}
+  for(let k=0;k<5;k++){const a=-.5+k*.25;c.strokeStyle=`rgba(255,120,120,${.15+.7*q})`;c.lineWidth=1.5;c.beginPath();c.moveTo(495,145);c.lineTo(495+Math.cos(a+.6)*130,145+Math.sin(a+.6)*130);c.stroke();}
+  c.fillStyle='#223347';RR(c,560,100,110,14,7);c.fill();c.fillStyle='#ff8a8a';RR(c,560,100,Math.max(6,110*q),14,7);c.fill();T2(c,'hamburan ∝ kadar',560,94,{s:10,c:'#ff8a8a'});
+  H.push({x:495,y:145,r:60,t:'Nefelometri',d:'Antiserum spesifik dicampur dengan serum pasien dalam kuvet sehingga terbentuk kompleks imun; cahaya laser yang dihamburkan dibaca detektor. Intensitas hamburan sebanding dengan jumlah kompleks, yaitu kadar analit. Cara otomatis paling akurat untuk imunoglobulin dan komplemen.'});
+  // strategi
+  const B=[['Gambaran klinis','Jenis dan pola infeksi memberi petunjuk letak cacat imun (mis. infeksi bernanah berulang).','#4a6fa5'],['Uji penyaring','Jumlah sel (hitung darah lengkap, subset limfosit) dan kadar protein/imunoglobulin/komplemen untuk melokalisasi lesi.','#6a5fb5'],['Uji fungsi imun spesifik','Menguji fungsi: stimulasi PHA, produksi IL-2, uji kulit hipersensitivitas tipe lambat (PPD), kadar antibodi spesifik (isohemaglutinin, anti-tetanus), NBT, uji hemolisis komplemen.','#8a5fb5'],['Analisis gen/protein','Amplifikasi dan sekuensing gen, deteksi protein spesifik: memastikan diagnosis, skrining pembawa, dan konseling genetik.','#b05f9a']];
+  T2(c,'Strategi menetapkan sindrom imunodefisiensi (Gbr. 19.2)',20,262,{s:12,b:1,c:'#dfe8f2'});
+  B.forEach(([t,d,col],i)=>{const x=20+i*168;BOX(c,x,276,150,48,t,col,{s:12});if(i)ARW(c,x-18,300,x,300,'#9fb3c8');H.push({x:x+75,y:300,r:70,t,d});});
+  BOX(c,20,340,660,70,'Contoh: infeksi berulang oleh organisme pembentuk nanah → hitung sel dan protein normal\n→ neutrofil tidak dapat membunuh (NBT lemah) → gen lesi pada protein granul neutrofil\n= penyakit granulomatosa kronik','#2a3b52',{s:12,al:.9});
+  T2(c,'Uji saring (Tabel 19.3):  sel T: CD3, CD4/CD8, PHA  |  sel B: CD19/CD20, Ig, subkelas IgG\nfagosit: hitung neutrofil, NBT  |  komplemen: uji hemolisis',20,440,{s:11,c:'#9fb3c8'});
+}
+// ---------- 3. sel B dan imunoglobulin ----------
+const DB={normal:{b:1,m:.6,g:.8,a:.6,blk:-1,t:'Perkembangan sel B normal: pre-B → B imatur → B naif (sIgM) → kelas-switch (IgG/IgA/IgE) → sel plasma yang menyekresi antibodi.'},xla:{b:.02,m:.03,g:.03,a:.03,blk:0,t:'XLA (BTK): perkembangan terhenti pada tahap pre-B; sel B nyaris tidak ada dan semua kelas Ig sangat rendah.'},higm:{b:.7,m:1.3,g:.08,a:.08,blk:2,t:'Hyper-IgM (CD40L/CD40): sel B tidak dapat beralih kelas; IgM tinggi, IgG/IgA rendah.'},cvid:{b:.45,m:.35,g:.12,a:.1,blk:3,t:'CVID: gangguan diferensiasi menjadi sel plasma; jumlah sel B normal–rendah, IgG dan IgA rendah.'},iga:{b:.85,m:.6,g:.8,a:.04,blk:3,t:'Defisiensi IgA selektif: sel B normal dan IgG/IgM normal, tetapi IgA nyaris tidak ada.'}};
+function selb(c,S,T,H){
+  const D=DB[S.gang],st=[['Pre-B',70],['B imatur',200],['B naif\n(sIgM)',330],['B kelas-switch\n(IgG/IgA/IgE)',460],['Sel plasma',590]];
+  c.fillStyle='#1b2a3a';RR(c,20,50,660,140,12);c.fill();T2(c,'Jalur perkembangan sel B (Gbr. 19.6)',30,44,{s:12,b:1,c:'#dfe8f2'});
+  st.forEach(([t,x],i)=>{c.save();c.globalAlpha=D.blk>=0&&i>D.blk?.3:1;BOX(c,x-50,100,100,48,t,i<2?'#6a5fb5':i<4?'#4a6fa5':'#2d8a5f',{s:11});c.restore();if(i)ARW(c,x-76,124,x-52,124,'#8fa3b8');
+    H.push({x,y:124,r:50,t:t.replace('\n',' '),d:['Sel B awal di sumsum tulang; rantai berat μ sitoplasma. BTK diperlukan untuk menyelesaikan tahap ini.','Sel B imatur dengan IgM permukaan; menjalani seleksi.','Sel B matang naif dengan IgM dan IgD permukaan, bermigrasi ke organ limfoid.','Setelah bantuan sel T (interaksi CD40–CD40L) terjadi peralihan kelas rantai berat menjadi IgG, IgA, atau IgE.','Sel plasma menyekresi antibodi dalam jumlah besar.'][i]});});
+  if(D.blk>=0){const x=st[D.blk][0]&&(st[D.blk][1]+st[D.blk+1<5?D.blk+1:D.blk][1])/2+(D.blk===0?0:0);const bx=D.blk===0?st[0][1]+65:D.blk===2?st[2][1]+65:st[3][1]+65;c.strokeStyle=RD;c.lineWidth=5;c.beginPath();c.moveTo(bx,92);c.lineTo(bx,156);c.stroke();T2(c,'BLOK',bx,86,{a:'center',s:11,b:1,c:RD});}
+  T2(c,D.t,350,178,{a:'center',s:11,c:'#ffd9a0'});
+  // batang kadar
+  [['Sel B',D.b,BL],['IgM',D.m,OR],['IgG',D.g,GR],['IgA',D.a,PU]].forEach(([n,v,col],i)=>{const x=60+i*160;c.fillStyle='#223347';RR(c,x,230,26,150,6);c.fill();const h=clamp(v,0,1.3)/1.3*150;c.fillStyle=col;RR(c,x,380-h,26,Math.max(3,h),6);c.fill();T2(c,n,x+13,400,{a:'center',s:12,b:1,c:col});T2(c,v<.15?'sangat rendah':v>1.1?'tinggi':v<.5?'rendah':'normal',x+13,418,{a:'center',s:10,c:'#9fb3c8'});});
+  T2(c,'Kadar relatif terhadap normal',30,222,{s:11,c:'#9fb3c8'});
+  // tabel kecil
+  T2(c,'XLA: sel B tidak ada\nHyper IgM: IgM normal–tinggi\nCVID: IgG & IgA rendah\nIgAD: hanya IgA rendah',470,260,{s:12,c:'#9fb3c8'});
+  H.push({x:470,y:290,r:70,t:'Fitur imunologi dibandingkan',d:'Jumlah sel B: XLA tidak ada; hyper-IgM normal; CVID rendah–normal; IgAD normal. IgM: XLA sangat rendah; hyper-IgM tinggi/normal; IgG: rendah pada XLA, hyper-IgM, CVID; normal pada IgAD. IgA: rendah pada XLA, hyper-IgM, CVID; nyaris tidak ada pada IgAD.'});
+}
+function bayi(c,S,T,H){
+  const ax=70,ay=60,aw=580,ah=330,tm=t=>ax+aw*t/24;
+  c.strokeStyle='#40566d';c.lineWidth=1.5;c.beginPath();c.moveTo(ax,ay);c.lineTo(ax,ay+ah);c.lineTo(ax+aw,ay+ah);c.stroke();
+  T2(c,'Imunoglobulin serum (relatif)',ax,ay-10,{s:12,c:'#9fb3c8'});T2(c,'umur setelah lahir (bulan) →',ax+aw,ay+ah+26,{a:'right',s:12,c:'#9fb3c8'});
+  [0,6,12,18,24].forEach(t=>T2(c,String(t),tm(t),ay+ah+14,{a:'center',s:11,c:'#9fb3c8'}));
+  const f=(g,col,lb,tt)=>{c.strokeStyle=col;c.lineWidth=2.8;c.beginPath();for(let t=0;t<=24;t+=.25){const y=g(t),px=tm(t),py=ay+ah-ah*clamp(y,0,1.1)/1.1;t?c.lineTo(px,py):c.moveTo(px,py);}c.stroke();T2(c,lb,tm(24)+4>690?686:tm(24)-4,ay+ah-ah*clamp(g(24),0,1.1)/1.1-6,{a:'right',s:11,c:col,b:1});};
+  const ma=t=>Math.exp(-t*.85),ig=t=>.12+.55*(1-Math.exp(-t/9));
+  f(ma,'#9fb0c3','IgG ibu',0);f(ig,GR,'IgG bayi');f(t=>ma(t)+ig(t),'#ffffff','IgG total');f(t=>.7*(1-Math.exp(-t/4)),OR,'IgM');f(t=>.45*(t/(t+18)),PU,'IgA');
+  const tt=+S.umur,x=tm(tt);c.setLineDash([4,4]);c.strokeStyle='#ffe08a';c.beginPath();c.moveTo(x,ay);c.lineTo(x,ay+ah);c.stroke();c.setLineDash([]);
+  const tot=ma(tt)+ig(tt);T2(c,'IgG total ≈ '+Math.round(tot*100)+'% (relatif)',x+6,ay+14,{s:12,c:'#ffe08a',b:1});
+  const nad=(()=>{let m=9,mt=0;for(let t=0;t<=24;t+=.1){const v=ma(t)+ig(t);if(v<m){m=v;mt=t;}}return mt;})();
+  DOT(c,tm(nad),ay+ah-ah*(ma(nad)+ig(nad))/1.1,6,'#ff8a8a','#fff');T2(c,'titik terendah ± '+nad.toFixed(1)+' bln',tm(nad)+8,ay+ah-ah*(ma(nad)+ig(nad))/1.1+22,{s:11,c:'#ff8a8a'});
+  H.push({x:tm(nad),y:ay+ah-ah*(ma(nad)+ig(nad))/1.1,r:18,t:'Hipogamaglobulinemia fisiologis bayi',d:'IgG ibu yang ditransfer lewat plasenta mencapai kadar maksimum pada akhir kehamilan, lalu turun (waktu paruh ± 3 minggu) sebelum IgG bayi sendiri cukup, sehingga IgG total mencapai titik terendah pada usia ± 3–6 bulan. Bila imunodefisiensi (mis. XLA) ada, infeksi berulang baru tampak setelah titik ini. IgM naik cepat, IgA lambat. Pada hewan ternak (kuda, sapi, babi, domba) IgG tidak melewati plasenta sehingga anak mengandalkan kolostrum.'});
+}
+// ---------- 4. imunologi saluran cerna ----------
+let Q=[];
+function gut(c,S,T,H){
+  const m=S.org;
+  if(m==='mukosa'){
+    c.fillStyle='#233246';c.fillRect(0,0,CW,110);T2(c,'LUMEN USUS',20,28,{s:12,c:'#9fb3c8',b:1});
+    c.fillStyle='#3b5f4a';c.beginPath();c.moveTo(0,150);for(let x=0;x<=CW;x+=1){const d=Math.abs(x-350);const dome=d<90?-Math.cos(d/90*1.57)*50*.0+(-40*Math.cos(d/90*1.57)):0;const vil=(x%46<30&&d>110)?-38*Math.sin((x%46)/30*3.14):0;c.lineTo(x,150+dome+vil);}c.lineTo(CW,CH);c.lineTo(0,CH);c.fill();
+    c.fillStyle='#4f7f63';c.beginPath();c.ellipse(350,150,66,40,0,Math.PI,0);c.fill();T2(c,'M cell',350,102,{a:'center',s:11,c:'#cfe',b:1});
+    // jaringan: folikel
+    c.fillStyle='#2f4a72';c.beginPath();c.ellipse(350,235,100,70,0,0,6.283);c.fill();c.fillStyle='#4a6fa5';c.beginPath();c.ellipse(350,255,48,34,0,0,6.283);c.fill();T2(c,'pusat germinal',350,258,{a:'center',s:10,c:'#fff'});
+    const r=rng(8);for(let i=0;i<30;i++)DOT(c,260+r()*180,185+r()*125,3,'#9fb0d8');
+    // sel plasma IgA
+    for(let i=0;i<7;i++){const x=60+i*38,y=300+r()*40;DOT(c,x,y,8,'#e0c36a','#fff');c.strokeStyle=YL;c.lineWidth=2;c.beginPath();c.moveTo(x,y-8);c.lineTo(x,y-40-(i%2)*6);c.stroke();}
+    H.push({x:130,y:320,r:70,t:'Sel plasma IgA dan sIgA',d:'Lamina propria mengandung banyak sel plasma penghasil IgA. IgA dimer dibawa melintasi epitel (transitosis) dan masuk lumen sebagai IgA sekretori, imunoglobulin yang paling banyak disekresi ke permukaan mukosa.'});
+    DOT(c,300,150,10,PU,'#fff');DOT(c,400,155,10,PU,'#fff');H.push({x:300,y:150,r:14,t:'Sel dendritik',d:'Mengambil antigen yang dibawa M cell, memprosesnya, dan mempresentasikan ke sel T CD4 di folikel Peyer\'s patch dan kelenjar getah bening mesenterika.'});
+    H.push({x:350,y:120,r:30,t:'Sel M (microfold)',d:'Sel epitel khusus di atas Peyer\'s patch (folikel tanpa kapsul dan tanpa limfatik aferen). Mengambil dan memindahkan antigen/patogen dari lumen ke jaringan limfoid di bawahnya.'});
+    H.push({x:350,y:250,r:50,t:'Peyer\'s patch / pusat germinal',d:'Kumpulan folikel limfoid: pusat germinal kaya sel B IgA+, daerah sel T di antaranya. Antigen yang ditangkap memicu sel T dan B efektor yang bermigrasi (lewat limfatik dan darah) kembali ke lamina propria dan epitel.'});
+    c.strokeStyle='#cfe';c.lineWidth=2;if(Q.length<25&&Math.random()<.15)Q.push({x:300+Math.random()*100,y:30,v:1});
+    Q.forEach(q=>{q.y+=q.v;if(q.y>135&&Math.abs(q.x-350)<40){q.x+=(350-q.x)*.05;if(q.y>160)q.y+=.9;}else if(q.y>138)q.dead=1;if(q.y>230)q.dead=1;DOT(c,q.x,q.y,3.4,GR,'#fff');});Q=Q.filter(q=>!q.dead);
+    T2(c,'Antigen (hijau) diambil oleh M cell → sel dendritik → sel T/B → sel plasma IgA',20,CH-10,{s:11,c:'#ffd9a0'});
+  }
+  if(m==='perni'){
+    const ab=S.ab;
+    c.fillStyle='#5a2a3a';c.beginPath();c.ellipse(150,190,110,130,0,0,6.283);c.fill();T2(c,'Sel parietal lambung',150,48,{a:'center',s:12,c:'#ffb3c8',b:1});
+    c.fillStyle='#2a1020';c.beginPath();c.ellipse(150,190,40,60,0,0,6.283);c.fill();T2(c,'kanalikulus\nsekretori',150,195,{a:'center',s:9,c:'#ffb3c8'});
+    for(let i=0;i<5;i++)T2(c,'H⁺Cl⁻',150+Math.sin(T*2+i)*6,150+i*20,{a:'center',s:9,c:'#ffd9a0'});
+    c.fillStyle=ab==='none'?GR:'#555';c.beginPath();c.arc(90,150,10,0,6.283);c.fill();T2(c,'IF',90,154,{a:'center',s:10,c:'#fff',b:1});
+    H.push({x:150,y:190,r:60,t:'Sel parietal',d:'Menghasilkan asam lambung dan faktor intrinsik (IF), glikoprotein yang diperlukan untuk absorpsi vitamin B12. Pada anemia pernisiosa, autoantibodi menyerang sel parietal dan pompa proton H⁺/K⁺-ATPase (subunit α dan β) → gastritis atrofik, IF hilang.'});
+    if(ab==='gastric'){c.strokeStyle=RD;c.lineWidth=3;[[60,140],[240,140],[240,250]].forEach(([x,y])=>{c.beginPath();c.moveTo(x,y);c.lineTo(x+(x<150?30:-30),y+20);c.stroke();T2(c,'Y',x-4,y-2,{s:16,c:RD,b:1});});}
+    // usus: ileum
+    c.fillStyle='#2f4a3a';RR(c,330,230,330,130,16);c.fill();T2(c,'Ileum terminal',495,222,{a:'center',s:12,c:'#9fe3c1',b:1});
+    for(let i=0;i<7;i++){c.fillStyle='#4f7f63';RR(c,350+i*42,245,22,70,10);c.fill();}
+    H.push({x:495,y:300,r:80,t:'Reseptor IF–B12 di ileum',d:'Kompleks IF–B12 berikatan dengan reseptor pada enterosit ileum dan B12 diserap. Antibodi pemblokir (mengganggu situs ikatan B12 pada IF) dan antibodi pengikat (mengganggu ikatan kompleks ke reseptor) sama-sama mencegah absorpsi. Antibodi pemblokir ditemukan pada ± 70% pasien.'});
+    // B12 + IF gerak
+    const ok=ab==='none';const pts=[[80,160],[260,100],[330,150],[410,240]];
+    for(let i=0;i<6;i++){const p=(T*.18+i/6)%1,[x,y]=poly(ok?[[90,150],[250,60],[400,110],[430,240],[470,290]]:[[90,150],[250,60],[400,110],[430,200]],ok?p:Math.min(p,.5+.04*i));DOT(c,x,y,5,RD,'#fff');if(ok&&p>.6)DOT(c,x+10,y,5,GR,'#fff');}
+    T2(c,ab==='none'?'Normal: B12 + IF → kompleks → diserap di ileum':ab==='gastric'?'Antibodi anti-sel parietal → atrofi mukosa → IF berkurang → B12 tidak terserap':ab==='block'?'Antibodi pemblokir: B12 tidak dapat berikatan dengan IF':'Antibodi pengikat: kompleks IF–B12 tidak dapat berikatan dengan reseptor ileum',20,CH-40,{s:12,c:ab==='none'?'#6ee7a6':'#ff9b8a'});
+    T2(c,ab==='none'?'':'Akibat: anemia megaloblastik, MCV > 100 fl, neutrofil bersegmen banyak, pucat dan sedikit ikterik',20,CH-22,{s:11,c:'#ffd9a0'});
+  }
+  if(m==='seliak'){
+    const g=+S.glu/100;
+    T2(c,'Vili jejunum',20,32,{s:12,b:1,c:'#9fb3c8'});T2(c,'g = paparan gluten '+Math.round(g*100)+'%',200,32,{s:12,c:'#ffd9a0'});
+    c.fillStyle='#233246';c.fillRect(20,40,660,200);
+    for(let i=0;i<13;i++){const x=40+i*50,h=110*(1-.8*g);c.fillStyle='#d9a0a8';RR(c,x,235-h-(g>0?0:0),30,h,12);c.fill();c.fillStyle='#4a2a3a';RR(c,x-6,225,42,22+g*18,6);c.fill();
+      for(let k=0;k<Math.round(g*3);k++)DOT(c,x+15,235-h+14+k*12,3,'#e8e8ff');}
+    c.fillStyle='#2a1a22';c.fillRect(20,243,660,10);
+    H.push({x:200,y:150,r:80,t:'Atrofi vili',d:'Pada penyakit seliak, mukosa jejunum menunjukkan vili tumpul/datar, kripta memanjang, dan infiltrasi sel mononuklear di lamina propria serta limfosit intraepitel (terutama CD8). Setelah diet bebas gluten, mukosa membaik.'});
+    // alur imun
+    const bx=[['Gliadin 33-mer\n(tahan pencernaan)',20,'#8a6a3a'],['tTG mendeamidasi\npeptida',160,'#6a5fb5'],['APC menyajikan\nvia HLA-DQ2/DQ8',300,'#a98ae8'],['Sel T CD4 aktif\n→ sitokin',440,'#4a6fa5'],['Kerusakan epitel\n(atrofi vili)',570,'#a63d40']];
+    bx.forEach(([t,x,col],i)=>{BOX(c,x,300,120,50,t,col,{s:10});if(i)ARW(c,x-18,325,x,325,'#9fb3c8');});
+    H.push({x:230,y:325,r:100,t:'Mekanisme imun seliak',d:'Peptida gliadin 33 asam amino yang kaya prolin dan glutamin tahan enzim pencernaan. Enzim tissue transglutaminase mendeamidasi menjadi epitop bermuatan negatif yang terikat kuat HLA-DQ2 (atau DQ8) pada APC dan dikenali sel T CD4, lalu sitokin memicu kerusakan mukosa. Antibodi anti-tTG IgA dan anti-endomisium dipakai sebagai uji diagnostik; kelainan dapat disertai dermatitis herpetiformis.'});
+    T2(c,'Terapi: diet bebas gluten seumur hidup (80% membaik dalam ± 24 bulan). Risiko limfoma usus dan karsinoma meningkat bila tidak terkontrol.',20,380,{s:11,c:'#9fb3c8'});
+  }
+  if(m==='ibd'){
+    const ext=+S.ext/100;
+    T2(c,'Kolitis ulseratif (UC)',20,40,{s:13,b:1,c:'#ffd9a0'});T2(c,'Penyakit Crohn',20,250,{s:13,b:1,c:'#ffd9a0'});
+    c.strokeStyle='#9fb3c8';c.lineWidth=26;c.lineCap='round';c.beginPath();c.moveTo(40,100);c.lineTo(660,100);c.stroke();c.beginPath();c.moveTo(40,310);c.lineTo(660,310);c.stroke();
+    c.strokeStyle='#6b3a3a';c.lineWidth=20;c.beginPath();c.moveTo(660,100);c.lineTo(660-620*ext,100);c.stroke();
+    T2(c,'rektum',650,138,{a:'right',s:10,c:'#9fb3c8'});T2(c,'kolon proksimal',60,138,{s:10,c:'#9fb3c8'});
+    H.push({x:500,y:100,r:60,t:'Kolitis ulseratif',d:'Radang kontinu mulai dari rektum ke arah proksimal, terbatas di kolon dan mukosa. Gejala: diare berdarah. pANCA positif pada ± 70% pasien; respons imun cenderung seperti Th2.'});
+    c.strokeStyle='#e5646b';c.lineWidth=18;[[110,170],[260,300],[420,480],[560,610]].forEach(([a,b])=>{c.beginPath();c.moveTo(a,310);c.lineTo(b,310);c.stroke();});
+    H.push({x:300,y:310,r:70,t:'Penyakit Crohn',d:'Lesi lompat (skip lesions) dapat mengenai bagian mana pun dari mulut ke anus (terutama ileum terminal dan kolon), transmural, dengan granuloma. Gejala: nyeri perut, diare, demam, penurunan berat badan. Respons Th1/IL-12; varian gen NOD2 meningkatkan risiko. Anti-TNF dan imunosupresan dipakai pada kasus berat.'});
+    // penampang dinding
+    [[110,175,'mukosa saja',1],[410,175,'seluruh lapisan (transmural)',4]].forEach(([x,y,t,n],i)=>{const yy=i?385:175;for(let k=0;k<4;k++){c.fillStyle=['#c9788a','#8a5a6a','#6a4a5a','#4a3a4a'][k];c.fillRect(x+(i?0:0),yy+k*12,150,12);}
+      c.fillStyle='#000';c.beginPath();c.moveTo(x+30,yy);c.lineTo(x+60,yy+n*12);c.lineTo(x+90,yy);c.fill();T2(c,t,x+75,yy+64,{a:'center',s:11,c:'#ffd9a0'});});
+    T2(c,'Penampang dinding usus: UC (kiri atas) hanya mukosa; Crohn (kanan bawah) menembus semua lapisan',20,CH-8,{s:11,c:'#9fb3c8'});
+  }
+  if(m==='alergi'){
+    const ph=(T%5)/5;
+    c.fillStyle='#233246';c.fillRect(20,50,300,300);T2(c,'(a) Alergi makanan (IgE)',30,42,{s:12,b:1,c:'#ffd9a0'});
+    c.fillStyle='#8a5a8a';c.beginPath();c.arc(170,200,70,0,6.283);c.fill();for(let i=0;i<14;i++){const a=i/14*6.283;DOT(c,170+Math.cos(a)*(30+ph*60*(ph>.5?1:0)),200+Math.sin(a)*(30+ph*60*(ph>.5?1:0)),4,ph>.5?YL:'#d6b3d6');}
+    for(let i=0;i<6;i++){const a=i/6*6.283+.3;c.strokeStyle=BL;c.lineWidth=2;c.beginPath();c.moveTo(170+Math.cos(a)*70,200+Math.sin(a)*70);c.lineTo(170+Math.cos(a)*92,200+Math.sin(a)*92);c.stroke();}
+    DOT(c,170+Math.cos(.3)*100,200+Math.sin(.3)*100,6+ph*3,GR,'#fff');
+    T2(c,'sel mast (IgE terikat) + alergen → degranulasi (histamin)',170,320,{a:'center',s:11,c:'#dfe8f2'});
+    H.push({x:170,y:200,r:70,t:'Reaksi hipersensitivitas tipe I',d:'IgE spesifik pada sel mast mengikat alergen makanan, memicu degranulasi dan pelepasan histamin. Gejala: urtikaria, angioedema, mual-muntah, diare, mengi, hingga anafilaksis. Diagnosis: uji tusuk kulit/IgE spesifik dan uji tantang (placebo-controlled).'});
+    c.fillStyle='#233246';c.fillRect(380,50,300,300);T2(c,'(b) Intoleransi makanan (non-imun)',390,42,{s:12,b:1,c:'#ffd9a0'});
+    c.fillStyle='#4a6f5a';RR(c,430,150,200,60,12);c.fill();T2(c,'enzim laktase kurang',530,185,{a:'center',s:11,c:'#fff'});DOT(c,470,100+ph*40,6,YL);T2(c,'laktosa',470,95,{a:'center',s:10,c:'#ffd9a0'});
+    T2(c,'→ fermentasi di kolon:\ngas, diare, kembung',530,250,{a:'center',s:12,c:'#dfe8f2'});
+    H.push({x:530,y:180,r:60,t:'Intoleransi makanan',d:'Gejala berulang yang dapat direproduksi setelah makan zat tertentu, tanpa mekanisme imun: defisiensi enzim (laktase), zat farmakologis (kafein, tiramin), toksin (sulfit, nitrit). Beberapa mungkin melibatkan jalur komplemen alternatif. Penanganan: hindari pemicu (diet eliminasi).'});
+    T2(c,'Diet eliminasi + uji tantang membedakan alergi dan intoleransi. Pada anjing/kucing: uji eliminasi 8–12 minggu dengan protein baru atau hidrolisat.',20,CH-8,{s:11,c:'#9fb3c8'});
+  }
+}
+const IM={
+ peta:{k:'peta',t:'Peta cacat imun (imunodefisiensi)',ctl:[{k:'pat',label:'Patogen',type:'sel',val:'semua',opts:PT}],draw:peta,text:S=>'<p>Imunodefisiensi bisa <b>primer</b> (cacat genetik/kongenital) atau <b>sekunder</b> (paling sering: steroid, sitotoksik, imunosupresi transplantasi, keganasan, virus seperti HIV/FIV/FeLV). Klasifikasi paling mudah menurut bagian sistem imun yang terkena: sel T, sel B, gabungan T dan B, sel penyaji antigen, neutrofil, komplemen. Pola infeksi memberi petunjuk letak cacat.</p>'+(S.pat==='semua'?'':'<p class="kv">Cacat yang berkedip rentan terhadap kelompok patogen ini.</p>')},
+ lab:{k:'lab',t:'Uji laboratorium dan strategi diagnosis',ctl:[{k:'conc',label:'Kadar analit %',type:'range',min:10,max:100,step:5,val:60}],draw:lab,text:()=>'<p>Kadar imunoglobulin dan komplemen diukur dengan imunodifusi radial dan nefelometri. Fungsi sel T dinilai dari stimulasi mitogen (PHA), produksi IL-2, dan uji kulit tipe lambat; fagosit dengan uji NBT; komplemen dengan uji hemolisis. Kaji interpretasi dengan memperhatikan usia (kadar imunoglobulin bergantung umur).</p>'},
+ selb:{k:'selb',t:'Sel B dan imunoglobulin',ctl:[{k:'gang',label:'Kondisi',type:'sel',val:'normal',opts:[['normal','Normal'],['xla','XLA (Bruton)'],['higm','Hyper-IgM'],['cvid','CVID'],['iga','Defisiensi IgA']]}],draw:selb,text:()=>'<p>Defisiensi sel B terjadi di berbagai titik pada jalur produksi imunoglobulin. Letak blok menentukan jumlah sel B dan kelas antibodi yang hilang.</p><p class="kv">Terapi umum: infus IVIG (imunoglobulin intravena), antibiotik profilaksis; pada IgAD transfusi darah harus hati-hati karena anti-IgA.</p>'},
+ bayi:{k:'bayi',t:'Imunoglobulin pada janin dan bayi',ctl:[{k:'umur',label:'Umur (bulan)',type:'range',min:0,max:24,step:.5,val:4}],draw:bayi,text:()=>'<p>Kadar IgG bayi dipengaruhi antibodi ibu (transfer plasenta) yang turun, sementara sintesis sendiri baru naik: terjadi <b>hipogamaglobulinemia fisiologis</b>. Pada bayi prematur titik terendah bisa lebih dalam dan lebih lama.</p>'},
+ gut:{k:'gut',t:'Imunologi saluran cerna',ctl:[{k:'org',label:'Topik',type:'sel',val:'mukosa',opts:[['mukosa','Sistem imun mukosa (GALT)'],['perni','Anemia pernisiosa'],['seliak','Penyakit seliak'],['ibd','Penyakit radang usus (IBD)'],['alergi','Alergi makanan']]},{k:'ab',when:S=>S.org==='perni',label:'Antibodi',type:'sel',val:'none',opts:[['none','Normal'],['gastric','Anti-sel parietal'],['block','Antibodi pemblokir IF'],['bind','Antibodi pengikat IF']]},{k:'glu',when:S=>S.org==='seliak',label:'Gluten %',type:'range',min:0,max:100,step:10,val:100},{k:'ext',when:S=>S.org==='ibd',label:'Perluasan UC %',type:'range',min:10,max:100,step:10,val:60}],draw:gut,
+  text:S=>({mukosa:'<p>Usus berhadapan dengan miliaran mikroorganisme. Antigen oral cenderung menginduksi <b>toleransi</b> dan IgA (imunoglobulin utama yang disekresi). Jaringan limfoid: Peyer\'s patch, limfosit di lamina propria dan epitel (intraepitelial, banyak CD8), serta kelenjar getah bening mesenterika.</p><p class="kv">Hewan: pada anak hewan ternak, kolostrum (IgG, IgA) menjadi sumber kekebalan pasif; sel M dan Peyer\'s patch ileum penting pada domba/sapi/babi dalam pematangan repertoar B.</p>',perni:'<p>Anemia pernisiosa: anemia megaloblastik akibat kekurangan vitamin B12 karena IF tidak ada (gastritis atrofik autoimun). Rata-rata muncul usia 60 tahun, sering bersama penyakit autoimun lain (Graves, Addison, vitiligo). Uji Schilling: B12 radioaktif oral, lihat ekskresi urin; terapi suntik B12.</p><p class="kv">Hewan: malabsorpsi kobalamin bawaan (mis. Giant Schnauzer, Beagle, Border Collie; gangguan reseptor cubam) dan hipokobalaminemia pada penyakit usus kronik/EPI pada anjing dan kucing, bukan autoimun.</p>',seliak:'<p>Seliak: enteropati yang dipicu gluten (gandum, barli, rye) pada individu dengan HLA-DQ2/DQ8. Gejala: diare steatore, penurunan berat badan, anemia defisiensi besi; kerabat tingkat pertama berisiko 3–20%.</p><p class="kv">Hewan: enteropati sensitif-gluten dilaporkan pada Irish Setter.</p>',ibd:'<p>IBD terdiri dari kolitis ulseratif dan penyakit Crohn: respons imun berlebihan terhadap flora komensal pada individu rentan (genetik dan lingkungan).</p><p class="kv">Hewan: enteropati inflamatori kronik pada anjing/kucing (enteritis limfoplasmasitik); kolitis granulomatosa/histiositik ulseratif pada Boxer berkaitan dengan E. coli invasif.</p>',alergi:'<p>Reaksi merugikan terhadap makanan: <b>alergi</b> (mekanisme imun, mis. IgE) vs <b>intoleransi</b> (non-imun). Diagnosis alergi dipastikan dengan diet eliminasi dan uji tantang.</p>'})[S.org]}
+};
+topicTab({id:'imun',title:'Imunologi',scenes:[IM.peta,IM.lab,IM.selb,IM.bayi,IM.gut],
+ summary:['Imunodefisiensi primer = cacat genetik (jarang); sekunder = akibat obat, keganasan, infeksi virus (lebih sering).','Klasifikasi: sel T, sel B, gabungan T+B, penyaji antigen, neutrofil (CGD, LAD), komplemen.','Pola infeksi: sel T → virus/jamur/protozoa; sel B → bakteri piogenik; neutrofil → S. aureus/jamur; komplemen terminal → Neisseria.','Pemeriksaan: gambaran klinis → uji penyaring → uji fungsi → analisis gen.','Antibodi diukur dengan imunodifusi radial dan nefelometri; sel T dengan subset CD dan PHA; fagosit dengan NBT.','Hipogamaglobulinemia fisiologis bayi: titik terendah IgG sekitar 3–6 bulan.','Pernisiosa: autoantibodi → IF hilang → B12 tidak terserap → anemia megaloblastik.','Seliak: gluten → tTG → HLA-DQ2/DQ8 → sel T → atrofi vili; terapi diet bebas gluten.','IBD: UC (kontinu, mukosa, rektum) vs Crohn (lesi lompat, transmural, granuloma).','Alergi makanan (IgE) berbeda dari intoleransi (non-imun); diagnosis dengan eliminasi dan tantang.'],
+ quiz:[{q:'Bayi dengan XLA mulai sering infeksi bakteri setelah usia 5–6 bulan karena…',o:['Sel T hilang','IgG ibu telah habis','Timus tidak ada','Komplemen rendah'],a:1,e:'IgG ibu melindungi beberapa bulan; setelah habis, ketiadaan sel B terlihat.'},
+ {q:'Cacat NADPH oksidase fagosit menyebabkan…',o:['Penyakit granulomatosa kronik','DiGeorge','Hyper-IgM','Defisiensi IgA'],a:0,e:'Neutrofil tidak dapat membunuh mikroba yang ditelan (uji NBT abnormal).'},
+ {q:'Mikroba yang khas pada defisiensi komponen komplemen terminal (C5–C9) ialah…',o:['Pneumocystis','Neisseria','Mycobacterium','Giardia'],a:1,e:'Kompleks serangan membran penting bagi pembunuhan Neisseria.'},
+ {q:'Sel B tidak dapat beralih kelas karena CD40L cacat pada…',o:['XLA','CVID','Hyper-IgM','IgA selektif'],a:2,e:'IgM tinggi/normal, IgG/IgA rendah.'},
+ {q:'Autoantibodi pada anemia pernisiosa terutama menyerang…',o:['Sel mast','Sel parietal dan faktor intrinsik','Sel β pankreas','Enterosit jejunum'],a:1,e:'Hilangnya IF mencegah absorpsi B12 di ileum.'},
+ {q:'Pada penyakit seliak, enzim yang mendeamidasi peptida gliadin ialah…',o:['Amilase','Tissue transglutaminase','Lipase','Pepsin'],a:1,e:'Deamidasi meningkatkan afinitas peptida pada HLA-DQ2/DQ8.'},
+ {q:'Ciri khas penyakit Crohn dibanding kolitis ulseratif ialah…',o:['Hanya di rektum','Lesi lompat dan transmural','Selalu berdarah','pANCA 100%'],a:1,e:'Crohn dapat mengenai seluruh saluran cerna dengan lesi berselang dan melibatkan semua lapisan.'},
+ {q:'Imunoglobulin yang terutama disekresi ke permukaan mukosa ialah…',o:['IgM','IgE','IgA','IgD'],a:2,e:'IgA sekretori (dimer) mendominasi sekresi mukosa.'},
+ {q:'Terapi bagi sebagian besar defisiensi antibodi primer ialah…',o:['IVIG','Steroid','Vitamin C','Antihistamin'],a:0,e:'Imunoglobulin intravena menggantikan antibodi yang hilang.'},
+ {q:'Anjing yang rentan penyakit adhesi leukosit (CLAD) ialah…',o:['Irish Setter','Beagle','Bulldog','Dachshund'],a:0,e:'CLAD akibat mutasi CD18, dilaporkan pada Irish Setter.'}],
+ src:['Buku ajar imunologi milik penulis (bagian “Basic and clinical immunology”): Bab 15 <i>Gastrointestinal diseases</i> (hlm. 211–217) dan Bab 19 <i>Immunodeficiency</i> (hlm. 265–280); gambar diolah ulang secara digital.','Young B, et al. <i>Wheater\'s Functional Histology</i>, 5th ed. Churchill Livingstone; 2006 (histologi jejunum seliak yang dirujuk pada buku ajar).','Tizard IR. <i>Veterinary Immunology</i>. Elsevier.','Day MJ, Schultz RD. <i>Veterinary Immunology: Principles and Practice</i>. CRC Press.','Cunningham-Rundles C, Ponda PP. Molecular defects in T- and B-cell primary immunodeficiency. <i>Nat Rev Immunol</i> 2005;5:880–92.','Casanova JL, Abel L. Primary immunodeficiencies: a field in its infancy. <i>Science</i> 2007;317:617–9.']});
+};
+
+
+const SRC={
+ anatomi:['König HE, Liebich HG. Veterinary Anatomy of Domestic Mammals. Schattauer.','Dyce KM, Sack WO, Wensing CJG. Textbook of Veterinary Anatomy. Elsevier.','Evans HE, de Lahunta A. Miller’s Anatomy of the Dog. Elsevier.'],
+ mata:['Maggs DJ, Miller PE, Ofri R. Slatter’s Fundamentals of Veterinary Ophthalmology. Elsevier.','Gelatt KN (ed.). Veterinary Ophthalmology. Wiley-Blackwell.'],
+ mikro:['Taylor MA, Coop RL, Wall RL. Veterinary Parasitology. Wiley-Blackwell.','Soulsby EJL. Helminths, Arthropods and Protozoa of Domesticated Animals. Baillière Tindall.'],
+ histo:['Zachary JF (ed.). Pathologic Basis of Veterinary Disease. Elsevier.','Eurell JA, Frappier BL (eds). Dellmann’s Textbook of Veterinary Histology. Blackwell.'],
+ embrio:['Hamburger V, Hamilton HL (1951). A series of normal stages in the development of the chick embryo. J Morphol 88:49–92.','Gilbert SF. Developmental Biology. Sinauer.'],
+ repro:['Senger PL. Pathways to Pregnancy and Parturition. Current Conceptions.','Noakes DE, Parkinson TJ, England GCW. Veterinary Reproduction and Obstetrics. Saunders.'],
+ darah:['Thrall MA et al. Veterinary Hematology and Clinical Chemistry. Wiley-Blackwell.','Weiss DJ, Wardrop KJ (eds). Schalm’s Veterinary Hematology. Wiley-Blackwell.']
+};
+(function(){const N={anatomi:'Anatomi & Otot 3D',mata:'Mata 3D',mikro:'Mikroskop Parasit',histo:'Histopatologi',embrio:'Embriologi',repro:'Reproduksi',darah:'Ulas Darah'};
+ window.addSrc=(k,t,list)=>{SRC[k]=list;N[k]=t;render();};
+ function render(){$('#srcs').innerHTML=Object.keys(SRC).map(k=>`<h4>${N[k]||k}</h4><ul>${SRC[k].map(s=>`<li>${s}</li>`).join('')}</ul>`).join('');}
+ window.renderSrc=render;render();})();
 /* ---------- tentang ---------- */
 $('#about').innerHTML=`<h2>101daily</h2>
-<p>Atlas interaktif untuk mahasiswa kedokteran hewan: anatomi dan otot 3D (sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular), anatomi mata 3D, mikroskop parasit virtual, histopatologi, embriologi, perbandingan reproduksi, dan ulas darah (hematologi) dengan kuis dan latihan hitung jenis leukosit.</p>
+<p>Atlas interaktif untuk belajar kedokteran hewan dan ilmu kesehatan: anatomi dan otot 3D, anatomi mata 3D, mikroskop virtual, histopatologi, embriologi, reproduksi, ulas darah, serta modul klinis (mata sakit, farmakologi, imunologi). Semua gambar dibuat ulang secara digital sebagai ilustrasi skematis untuk keperluan belajar.</p>
+<h2>Penulis</h2>
+<p><b>drh. Alfathitamara Oktalia Sasti, M.Si.</b></p>
 <h2>Catatan penting</h2>
-<p>Semua model dan gambar dibuat dengan kode (skematis) agar bebas hak cipta. Materi berupa ringkasan belajar dan nilai (mis. protein, lama gestasi) berupa perkiraan dari literatur umum. Selalu cocokkan dengan atlas dan buku rujukan (König &amp; Liebich, Dyce, Miller's Anatomy of the Dog, buku parasitologi dan patologi veteriner). Informasi injeksi hanya untuk belajar anatomi, bukan petunjuk dosis atau tindakan medis.</p>
-<h2>Menambah foto atlas sendiri</h2>
-<p>Tempatkan foto/gambar yang kamu punya hak pakainya di folder <code>assets/repro/</code> dengan nama <code>sapi-betina.jpg</code>, <code>anjing-jantan.jpg</code>, dan seterusnya (kunci: sapi, kambing, kuda, babi, anjing, kucing, ayam, kura, ular). Gambar akan tampil otomatis di tab Reproduksi.</p>
-<h2>Menjalankan</h2>
-<p>Buka <code>index.html</code> di browser (butuh internet untuk memuat Three.js), atau unggah ke GitHub Pages. Lihat README untuk langkahnya.</p>`;
+<p>Materi berupa ringkasan belajar; nilai (mis. protein, lama gestasi) berupa perkiraan dari literatur. Selalu cocokkan dengan atlas dan buku rujukan. Informasi injeksi dan obat hanya untuk belajar, bukan petunjuk dosis atau tindakan medis.</p>
+<h2>Sumber dan rujukan</h2>
+<p>Daftar rujukan tiap modul ada di bagian bawah halaman.</p>`;
 
 inits.anatomi();done.anatomi=1;
 </script>
