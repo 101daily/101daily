@@ -121,7 +121,7 @@ input[type=range]{accent-color:var(--ac)}
 
 <section class="tab" id="tab-embrio"><div class="layout"><div>
 <div class="stage"><canvas id="emb-cv" class="flat" width="700" height="520"></canvas>
-<div class="bar"><label>Tahap <input type="range" id="emb-sl" min="0" max="8" value="0" style="width:260px"></label><span id="emb-name"></span></div></div>
+<div class="bar"><label>Tahap <input type="range" id="emb-sl" min="0" max="10" value="0" style="width:240px"></label><span id="emb-name"></span><label>Denyut <input type="range" id="emb-bpm" min="40" max="240" value="120" style="width:110px"> <b id="emb-bpmv">120</b>/mnt</label><button class="b" id="emb-play">Jeda</button></div></div>
 <p class="muted">Geser slider untuk melihat tahap perkembangan. Klik lapisan germinal pada tahap gastrula/neurula.</p>
 </div><aside class="panel" id="emb-info"></aside></div></section>
 
@@ -1037,6 +1037,8 @@ const ES=[
  ['Blastosista','Trofoblas (menjadi plasenta) mengelilingi blastosel; massa sel dalam (inner cell mass) menjadi embrio.','Sapi: ± hari 7; "menetas" dari zona pelusida ± hari 9–10, lalu memanjang (elongasi) ± hari 13–17.'],
  ['Gastrula','Tiga lapisan germinal terbentuk lewat gastrulasi (primitive streak): ektoderm, mesoderm, endoderm.','Ayam: primitive streak terlihat ± 16–18 jam inkubasi.'],
  ['Neurula','Lempeng saraf melipat menjadi tabung saraf; notokorda dan somit terbentuk; dasar sistem saraf pusat.','Ayam: ± hari 1–2 inkubasi.'],
+ ['Tabung jantung berdetak','Jantung berasal dari dua tabung endokardium yang menyatu menjadi satu tabung lurus lalu melengkung (looping). Kontraksi peristaltik dimulai dari sinus venosus (pemacu awal) → atrium → ventrikel → bulbus cordis. Seret slider denyut dan lihat sel darah mengalir searah.','Ayam: denyut pertama ± jam ke-40–44 inkubasi. Mamalia: tabung jantung berdetak pada awal pembentukan somit.'],
+ ['Sirkulasi vitelin (kantung kuning telur)','Embrio mengambil nutrisi dari kuning telur lewat pembuluh darah di area vaskulosa. Arteri vitelin membawa darah keluar dari embrio ke area vaskulosa; vena vitelin membawa darah kaya nutrisi kembali ke sinus venosus. Di tepinya ada sinus terminalis.','Ayam: sirkulasi vitelin berfungsi sejak ± hari ke-2–3. Darah pertama terbentuk di pulau darah (blood island).'],
  ['Organogenesis','Organ terbentuk: jantung berdetak, tunas anggota gerak, mata, somit; tubuh melengkung (C).','Ayam: jantung berdetak ± 40–44 jam; tunas sayap/kaki ± hari 3.']
 ];
 const GERM=[['Ektoderm','Epidermis dan turunannya (rambut, kuku/tanduk, kelenjar), sistem saraf pusat dan perifer, lensa mata, krista neural (melanosit, ganglia).'],['Mesoderm','Otot, tulang, tulang rawan, jantung, pembuluh darah dan darah, ginjal, gonad dan saluran reproduksi, dermis.'],['Endoderm','Lapisan saluran pencernaan dan pernapasan, hati, pankreas, tiroid, kandung kemih.']];
@@ -1045,7 +1047,60 @@ inits.embrio=function(){
   const cv=$('#emb-cv'),c=cv.getContext('2d'),info=$('#emb-info');let idx=0;
   const cell=(x,y,r,col)=>{const g=c.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);g.addColorStop(0,'#fff6e0');g.addColorStop(1,col||'#e8c88a');c.fillStyle=g;c.strokeStyle='#a07a3a';c.lineWidth=1.5;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.stroke();};
   let spots=[];
-  function draw(){
+  let T=0,paused=false,bpm=120,last=0;
+  const bez=(p0,p1,p2,p3,n=40)=>Array.from({length:n+1},(_,i)=>{const t=i/n,u=1-t;return[u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]];});
+  const at=(pts,s)=>{const f=Math.max(0,Math.min(.9999,s))*(pts.length-1),i=f|0,k=f-i;return[pts[i][0]+(pts[i+1][0]-pts[i][0])*k,pts[i][1]+(pts[i+1][1]-pts[i][1])*k];};
+  const poly=(pts,w,col)=>{c.strokeStyle=col;c.lineWidth=w;c.lineCap='round';c.lineJoin='round';c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();};
+  const phase=()=>(T*bpm/60)%1;
+  const atr=p=>p<.18?Math.sin(p/.18*Math.PI):0, ven=p=>p>=.2&&p<.5?Math.sin((p-.2)/.3*Math.PI):0;
+  function ecg(p){const g=(x,m,s)=>Math.exp(-((x-m)**2)/(2*s*s));return .12*g(p,.1,.03)-.15*g(p,.19,.008)+1*g(p,.22,.01)-.25*g(p,.25,.01)+.25*g(p,.5,.05);}
+  function ecgStrip(x0,y0,w,h){c.fillStyle='rgba(0,0,0,.35)';c.fillRect(x0,y0,w,h);c.strokeStyle='#5fe0a0';c.lineWidth=2;c.beginPath();for(let i=0;i<=w;i++){const tt=T-(w-i)/w*2.5,p=((tt*bpm/60)%1+1)%1;const y=y0+h*.65-ecg(p)*h*.5;i?c.lineTo(x0+i,y):c.moveTo(x0+i,y);}c.stroke();c.fillStyle='#9fe8c0';c.font='12px sans-serif';c.fillText('EKG (skematis)  '+bpm+'/mnt',x0+8,y0+14);}
+  const rbc=(p,col)=>{c.fillStyle=col;c.beginPath();c.ellipse(p[0],p[1],5,3.4,0,0,7);c.fill();};
+  function heartScene(){
+    const pa=phase(),a=atr(pa),v=ven(pa);
+    const path=[...bez([170,400],[170,330],[220,300],[290,292]),...bez([290,292],[400,290],[480,270],[480,200]).slice(1),...bez([480,200],[480,130],[420,90],[350,60]).slice(1)];
+    const n=path.length,s1=Math.floor(n*.36),s2=Math.floor(n*.68);
+    c.fillStyle='rgba(240,200,120,.08)';c.beginPath();c.arc(350,260,240,0,7);c.fill();
+    poly(path.slice(0,s1+1),36*(1+.22*a)+8,'#b4545a');poly(path.slice(0,s1+1),36*(1+.22*a),'#d9776e');
+    poly(path.slice(s1,s2+1),50*(1+.3*v)+8,'#a43f46');poly(path.slice(s1,s2+1),50*(1+.3*v),'#c9544e');
+    poly(path.slice(s2),24+8,'#b4545a');poly(path.slice(s2),24,'#e59b8e');
+    for(let i=0;i<42;i++){const s=((i/42)+T*(.18+.5*(1+Math.sin(pa*6.28))/2)*bpm/120)%1;rbc(at(path,s),'#8e1c2c');}
+    c.fillStyle='#fff';c.font='14px sans-serif';c.fillText(L('Sinus venosus (pemacu)'),40,425);c.fillText(L('Atrium'),215,340);c.fillText(L('Ventrikel'),500,250);c.fillText(L('Bulbus cordis → aliran keluar'),360,48);
+    c.fillStyle='#8ab';c.font='12px sans-serif';c.fillText(L('darah masuk'),40,445);
+    ecgStrip(20,455,660,56);
+    spots.push([200,330,34,'Atrium primitif','Menerima darah dari sinus venosus; berkontraksi lebih dulu (gelombang P pada EKG).'],[480,245,44,'Ventrikel primitif','Berkontraksi kuat setelah atrium sehingga mendorong darah ke bulbus cordis (kompleks QRS).'],[170,395,30,'Sinus venosus','Pemacu jantung awal: depolarisasi berawal di sini lalu merambat ke atrium dan ventrikel.'],[395,70,40,'Bulbus cordis / truncus arteriosus','Aliran keluar; kelak terbagi menjadi aorta dan arteri pulmonalis.']);
+  }
+  function vitScene(){
+    const pa=phase(),pul=.4+.6*ven(pa)+.3*atr(pa);
+    const g=c.createRadialGradient(350,250,20,350,250,230);g.addColorStop(0,'rgba(245,215,120,.35)');g.addColorStop(1,'rgba(245,215,120,.05)');c.fillStyle=g;c.beginPath();c.arc(350,250,232,0,7);c.fill();
+    c.strokeStyle='#c46a6a';c.lineWidth=3;c.beginPath();c.arc(350,250,205,0,7);c.stroke();
+    const arts=[],veins=[];
+    for(let i=0;i<7;i++){const a=i/7*6.283+.3,b=a+.3,ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);
+      arts.push(bez([350+ca*30,250+sa*30],[350+ca*80-sa*30,250+sa*80+ca*30],[350+ca*140+sa*30,250+sa*140-ca*30],[350+ca*205,250+sa*205],36));
+      veins.push(bez([350+cb*205,250+sb*205],[350+cb*150-sb*20,250+sb*150+cb*20],[350+cb*90+sb*20,250+sb*90-cb*20],[350+cb*35,250+sb*35],36));}
+    arts.forEach(p=>poly(p,4,'#c0434a'));veins.forEach(p=>poly(p,5,'#5c4a9a'));
+    c.fillStyle='#e7a49a';c.beginPath();c.ellipse(350,255,34,70,0,0,7);c.fill();c.beginPath();c.arc(350,175,32,0,7);c.fill();c.fillStyle='#222';c.beginPath();c.arc(338,168,5,0,7);c.fill();
+    const hs=1+.28*ven(pa)+.12*atr(pa);c.fillStyle='#c63a3a';c.beginPath();c.arc(350,225,13*hs,0,7);c.fill();
+    arts.forEach((p,i)=>{for(let k=0;k<7;k++)rbc(at(p,((k/7)+T*.12*(.5+pul)+i*.13)%1),'#d0262e');});
+    veins.forEach((p,i)=>{for(let k=0;k<7;k++)rbc(at(p,((k/7)+T*.1*(.5+pul)+i*.11)%1),'#6a4ab0');});
+    c.fillStyle='#fff';c.font='13px sans-serif';c.fillText(L('Arteri vitelin (keluar)'),30,60);c.fillText(L('Vena vitelin (masuk)'),30,82);c.fillText(L('Sinus terminalis'),520,60);c.fillText(L('Area vaskulosa'),520,82);
+    c.fillStyle='#d0262e';c.fillRect(14,52,10,10);c.fillStyle='#6a4ab0';c.fillRect(14,74,10,10);
+    ecgStrip(20,455,660,56);
+    spots.push([350,225,18,'Jantung','Memompa darah ke aorta dorsalis lalu ke arteri vitelin; kecepatan aliran mengikuti denyut.'],[350+Math.cos(.3)*140,250+Math.sin(.3)*140,22,'Arteri vitelin','Membawa darah dari aorta dorsalis keluar ke area vaskulosa untuk mengambil nutrisi dari kuning telur.'],[350+Math.cos(.6)*150,250+Math.sin(.6)*150,22,'Vena vitelin','Mengembalikan darah berisi nutrisi ke sinus venosus.'],[350+205,250,26,'Sinus terminalis','Pembuluh tepi yang membatasi area vaskulosa.'],[350,255,40,'Tubuh embrio','Embrio berada di atas kuning telur; kepala di atas.']);
+  }
+  function organFlow(){
+    const pa=phase();
+    const art=bez([300,265],[400,170],[500,230],[400,330]),vein=bez([400,330],[340,370],[290,330],[300,282]);
+    poly(art,4,'rgba(190,40,50,.8)');poly(vein,4,'rgba(90,70,170,.8)');
+    for(let k=0;k<9;k++){rbc(at(art,((k/9)+T*.16*bpm/120)%1),'#ff5a5a');rbc(at(vein,((k/9)+T*.12*bpm/120)%1),'#8a6ae0');}
+    const hs=1+.28*ven(pa)+.12*atr(pa);c.fillStyle='#e0383a';c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(300,265,22*hs,0,7);c.fill();c.stroke();
+    ecgStrip(20,455,300,56);c.fillStyle='#fff';c.font='12px sans-serif';c.fillText(L('merah: arteri · ungu: vena'),340,490);
+  }
+  function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.1,(ts-last)/1000||0);last=ts;if(!cv.offsetParent||idx<8||paused)return;T+=dt;draw(false);}
+  requestAnimationFrame(loop);
+  $('#emb-bpm').oninput=e=>{bpm=+e.target.value;$('#emb-bpmv').textContent=bpm;};
+  $('#emb-play').onclick=e=>{paused=!paused;e.target.textContent=paused?'Lanjut':'Jeda';};
+  function draw(full=true){
     c.fillStyle='#1d2a38';c.fillRect(0,0,700,520);spots=[];const cx=350,cy=260;
     const zp=(r)=>{c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=10;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();};
     if(idx===0){zp(190);cell(cx,cy,160);disc(c,cx-45,cy,26,'#8a5a9a');disc(c,cx+45,cy,26,'#5a7aaa');disc(c,cx+130,cy-95,10,'#e8c88a','#a07a3a',1.5);}
@@ -1068,17 +1123,20 @@ inits.embrio=function(){
       [-1,1].forEach(s=>{disc(c,350+s*95,215,36,'#f09585','#fff',2);disc(c,350+s*60,110,5,'#b6d3f0');});
       c.fillStyle='#fff';c.font='14px sans-serif';c.fillText('Tabung saraf',308,155);c.fillText('Notokorda',305,247);c.fillText('Somit',112,220);c.fillText('Usus primitif',308,330);
       spots.push([350,150,48,'Tabung saraf (ektoderm)','Menjadi otak dan sumsum tulang belakang. Sel krista neural bermigrasi membentuk ganglia, melanosit, dll.'],[350,242,18,'Notokorda (mesoderm)','Penginduksi tabung saraf; sisanya menjadi nukleus pulposus diskus intervertebralis.'],[255,215,38,'Somit (mesoderm)','Menjadi tulang belakang (sklerotom), otot rangka (miotom), dermis (dermatom).'],[445,215,38,'Somit (mesoderm)','Menjadi tulang belakang, otot rangka, dan dermis.'],[350,300,52,'Usus primitif (endoderm)','Menjadi epitel saluran cerna, hati, pankreas, paru.'],[110,190,50,'Ektoderm permukaan','Menjadi epidermis dan turunannya.']);}
+    else if(idx===8){heartScene();}
+    else if(idx===9){vitScene();}
     else{
       c.lineCap='round';c.strokeStyle='#e7a49a';c.lineWidth=74;c.beginPath();c.moveTo(250,170);c.bezierCurveTo(420,110,520,250,380,340);c.stroke();c.lineWidth=40;c.beginPath();c.moveTo(380,340);c.quadraticCurveTo(320,410,250,380);c.stroke();c.lineWidth=14;c.beginPath();c.moveTo(250,380);c.quadraticCurveTo(220,395,205,370);c.stroke();
       disc(c,250,160,70,'#e7a49a');disc(c,225,148,12,'#222');disc(c,300,265,22,'#c63a3a');disc(c,440,185,17,'#e7a49a','#b8786e',2);disc(c,420,325,15,'#e7a49a','#b8786e',2);
       c.strokeStyle='rgba(130,60,50,.6)';c.lineWidth=2;for(let i=0;i<9;i++){const t=i/9;c.beginPath();c.arc(300+i*14,150+Math.sin(i)*14+i*8,8,0,7);c.stroke();}
       disc(c,430,400,80,'#f1d38a','#b89440',3);
       spots.push([250,160,70,'Kepala dan otak','Vesikel otak (prosensefalon, mesensefalon, rombensefalon); mata berpigmen.'],[300,265,22,'Jantung','Tabung jantung melengkung dan mulai berdetak; sirkulasi awal.'],[440,185,20,'Tunas anggota gerak','Tunas sayap/kaki depan; ektoderm di ujung (AER) mengatur pertumbuhan.'],[430,400,80,'Kantung kuning telur','Sumber nutrisi (terutama unggas) dan tempat pembentukan darah awal.'],[330,200,60,'Somit','Blok mesoderm segmental sepanjang punggung.']);}
-    $('#emb-name').textContent=ES[idx][0];
+    if(idx===10)organFlow();
+    if(full){$('#emb-name').textContent=ES[idx][0];
     info.innerHTML=`<h2>${ES[idx][0]}</h2><p>${ES[idx][1]}</p><p class="muted">${ES[idx][2]}</p>
     ${idx>=6?`<h3>Turunan lapisan germinal</h3>${GERM.map(g=>`<p><b>${g[0]}:</b> ${g[1]}</p>`).join('')}`:''}
     <h3>Perkembangan embrio ayam (21 hari)</h3><div class="scroll" style="max-height:200px"><table><tr><th>Hari</th><th>Peristiwa</th></tr>${CHICK.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table></div>
-    <p class="note">Waktu bersifat perkiraan dan berbeda antarspesies dan kondisi; cocokkan dengan buku embriologi veteriner (mis. Noden &amp; de Lahunta).</p>`;
+    <p class="note">Waktu bersifat perkiraan dan berbeda antarspesies dan kondisi; cocokkan dengan buku embriologi veteriner (mis. Noden &amp; de Lahunta).</p>`;}
   }
   $('#emb-sl').oninput=e=>{idx=+e.target.value;draw();};
   canvasSpots(cv,()=>spots,s=>{info.innerHTML=`<button class="b" id="eback2">← Tahap ini</button><h2 style="margin-top:10px">${s[3]}</h2><p>${s[4]}</p>`;$('#eback2',info).onclick=draw;});
@@ -1189,7 +1247,7 @@ inits.repro=function(){
 
 /* ---------- ulas darah (hematologi) ---------- */
 const TC={neut:'#6a4fb0',het:'#6a4fb0',eos:'#e8742f',baso:'#2f1b5e',lymph:'#3a8fd0',mono:'#7a8aa8',plt:'#a56fd0',thr:'#a56fd0'};
-const SN={neut:'Neutrofil',het:'Heterofil',eos:'Eosinofil',baso:'Basofil',lymph:'Limfosit',mono:'Monosit',plt:'Platelet (trombosit)',thr:'Trombosit (berinti)'};
+const SN={neut:'Neutrofil',het:'Heterofil',eos:'Eosinofil',baso:'Basofil',lymph:'Limfosit',mono:'Monosit',plt:'Platelet (trombosit)',thr:'Trombosit (berinti)',band:'Neutrofil batang (band)',blast:'Sel blas limfoid'};
 const SI={neut:'N',het:'H',eos:'E',baso:'B',lymph:'L',mono:'M'};
 const CI={
  rbc:{n:'Eritrosit (sel darah merah)',ciri:'Pada mamalia tanpa inti, berwarna merah muda-oranye. Bentuk dan ukuran berbeda antarspesies.',fn:'Mengangkut oksigen (lewat hemoglobin) dari paru ke jaringan dan membawa CO2 kembali.',klin:'Jumlah menurun = anemia. Anemia regeneratif ditandai polikromasia (sel biru keabuan lebih besar = retikulosit) dan anisositosis. Periksa juga parasit di dalam atau di permukaan sel.'},
@@ -1201,6 +1259,8 @@ const CI={
  mono:{n:'Monosit',ciri:'Leukosit terbesar (± 14–18 µm). Inti berbentuk ginjal atau tapal kuda, sitoplasma abu-abu kebiruan dengan vakuola halus.',fn:'Fagositosis; menjadi makrofag di jaringan; menyajikan antigen.',klin:'Monositosis: radang kronis, nekrosis jaringan, infeksi (mis. penyakit granulomatosa), stres pada anjing.'},
  plt:{n:'Platelet (trombosit mamalia)',ciri:'Fragmen sitoplasma kecil tak berinti (± 2–4 µm), ungu dengan granula halus; sering bergerombol.',fn:'Hemostasis: penyumbat luka dan pembekuan darah.',klin:'Trombositopenia: perdarahan (mis. petechiae), DIC, babesiosis/ehrlichiosis. Gerombol platelet pada ulasan dapat menyebabkan hitung palsu rendah.'},
  thr:{n:'Trombosit (unggas)',ciri:'Sel oval kecil berinti, sitoplasma tak berwarna dengan beberapa granula gelap di kutub.',fn:'Hemostasis, setara platelet mamalia; unggas juga punya sifat fagositik.',klin:'Jumlah turun: gangguan pembekuan atau sumsum tulang.'},
+ band:{n:'Neutrofil batang (band)',ciri:'Inti berbentuk tapal kuda/huruf U dengan tepi sejajar dan belum bersegmen; sitoplasma mirip neutrofil.',fn:'Neutrofil yang belum matang, dilepas lebih awal dari sumsum tulang saat kebutuhan tinggi. Peningkatan (shift to the left) menandakan radang/infeksi berat.',klin:'Neutrofil batang >10% (atau di atas nilai acuan) menunjukkan peningkatan kebutuhan jaringan akan neutrofil, mis. pada sepsis, piometra, peritonitis.'},
+ blast:{n:'Sel blas limfoid',ciri:'Sel besar (≥ 2 kali eritrosit), inti bulat besar berkromatin halus, nukleolus jelas, sitoplasma sedikit dan biru tua.',fn:'Sel prekursor ganas pada leukemia limfoblastik; tidak ada pada darah tepi sehat.',klin:'Blas dalam darah tepi dengan sitopenia (anemia, trombositopenia) mengarah ke leukemia akut; konfirmasi dengan sitologi sumsum tulang dan imunofenotipe (flow cytometry).'},
  tryp:{n:'Trypanosoma (di plasma)',ciri:'Protozoa panjang bergelombang di antara eritrosit, dengan membran bergelombang, flagel bebas, inti oval dan kinetoplas kecil.',fn:'Parasit darah ekstraseluler, ditularkan mekanik oleh lalat penghisap darah.',klin:'Surra: demam intermiten, anemia, penurunan berat badan; sangat fatal pada kuda.'}
 };
 const BLD={
@@ -1233,24 +1293,29 @@ const BLD={
   par:{k:'haemo',txt:'Haemoproteus: gametosit berbentuk halter melingkari inti eritrosit dengan butir pigmen kecoklatan.'},
   notes:{het:'Heterofil unggas setara dengan neutrofil mamalia.',eos:'Granula bulat merah-oranye; inti 2 lobus.',baso:'Granula ungu gelap padat, bulat; relatif lebih banyak daripada mamalia.'}}
 };
-const BST={normal:'Normal: eritrosit seragam dan leukosit dalam proporsi sehat.',anemia:'Anemia regeneratif: jumlah eritrosit menurun, ukuran bervariasi (anisositosis), dan muncul sel biru keabuan yang lebih besar (polikromasia = retikulosit), tanda sumsum tulang merespons.',parasit:'Parasit darah: sebagian eritrosit (atau plasma) terinfeksi. Cari bentuk khas parasit, lalu klik untuk detailnya.'};
+const BST={normal:'Normal: eritrosit seragam dan leukosit dalam proporsi sehat.',anemia:'Anemia regeneratif: jumlah eritrosit menurun, ukuran bervariasi (anisositosis), dan muncul sel biru keabuan yang lebih besar (polikromasia = retikulosit), tanda sumsum tulang merespons.',imha:'Anemia hemolitik imun (IMHA): antibodi melapisi eritrosit sehingga muncul spherosit (sel kecil, padat, tanpa central pallor), autoaglutinasi (gumpalan sel), dan polikromasia karena sumsum tulang merespons. Diagnosis didukung uji aglutinasi dan Coombs.',toksik:'Infeksi bakteri berat / peradangan: neutrofilia dengan pergeseran ke kiri (neutrofil batang) dan perubahan toksik: sitoplasma basofilik, vakuolisasi, granula toksik, dan badan Döhle (bercak biru).',leukemia:'Leukemia limfoblastik (akut): sel blas berukuran besar dengan inti bulat besar, kromatin halus, nukleolus jelas, dan sitoplasma biru sedikit. Eritrosit dan trombosit biasanya turun karena sumsum tulang terdesak.',trombosit:'Trombositopenia: trombosit sangat sedikit (cek tepi dan ujung ulasan untuk gumpalan sebelum menyimpulkan). Klinis: petekie, ekimosis, perdarahan mukosa.',defbesi:'Anemia defisiensi besi: eritrosit mikrositik dan hipokromik (central pallor lebar), anisositosis dan poikilositosis; trombosit sering meningkat.',parasit:'Parasit darah: sebagian eritrosit (atau plasma) terinfeksi. Cari bentuk khas parasit, lalu klik untuk detailnya.'};
 const BSHUF=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
 
 function genField(k,state){
   const S=BLD[k],r=rng(k.length*977+state.length*31+7),W=2400,H=1800,rbc=[],other=[];
-  const R=S.rbc.r,step=R*2.15,dens=state==='anemia'?.6:.92;
+  const R=S.rbc.r,step=R*2.15,dens={anemia:.6,imha:.65,defbesi:.72,leukemia:.7}[state]||.92;
   for(let y=R;y<H;y+=step*.92)for(let x=R;x<W;x+=step){
     if(r()>dens)continue;
-    const c={t:'rbc',x:x+(r()-.5)*step*.5,y:y+(r()-.5)*step*.5,r:R*(1+(r()-.5)*(state==='anemia'?.5:.1)),rot:r()*6.28,seed:r()};
+    const c={t:'rbc',x:x+(r()-.5)*step*.5,y:y+(r()-.5)*step*.5,r:R*(1+(r()-.5)*(state==='anemia'?.5:state==='defbesi'?.35:.1))*(state==='defbesi'?.82:1),rot:r()*6.28,seed:r()};
+    if(state==='imha'){const q=r();if(q<.3){c.sph=true;c.r*=.78;}else if(q<.42){c.poly=true;c.r*=1.18;}}
+    if(state==='defbesi')c.hypo=true;
     if(state==='anemia'&&r()<.28){c.poly=true;c.r*=1.18;}
     if(state==='parasit'&&S.par.k!=='tryp'&&r()<.22)c.par=true;
     rbc.push(c);
+    if(state==='imha'&&r()<.07){const n=3+(r()*4|0);for(let i=1;i<n;i++)rbc.push({t:'rbc',x:c.x+(r()-.5)*R*1.6,y:c.y+(r()-.5)*R*1.6,r:R*.95,rot:r()*6.28,seed:r(),sph:r()<.5});}
     if(S.rbc.roul&&r()<.12){const n=3+(r()*4|0);for(let i=1;i<n;i++)rbc.push({t:'rbc',x:c.x+Math.cos(c.rot)*R*.6*i,y:c.y+Math.sin(c.rot)*R*.6*i,r:R,rot:c.rot,seed:r()});}
   }
-  const WR={neut:33,het:33,eos:36,baso:30,lymph:25,mono:41,plt:9,thr:18};
-  const place=(t,n)=>{for(let i=0;i<n;i++)other.push({t,x:120+r()*(W-240),y:120+r()*(H-240),r:WR[t],rot:r()*6.28,seed:r()});};
-  S.wbc.forEach(t=>place(t,S.mid[t]));
-  place(S.plt,S.plt==='plt'?45:25);
+  const WR={band:33,blast:42,neut:33,het:33,eos:36,baso:30,lymph:25,mono:41,plt:9,thr:18};
+  const place=(t,n,tox)=>{for(let i=0;i<n;i++)other.push({t,x:120+r()*(W-240),y:120+r()*(H-240),r:WR[t],rot:r()*6.28,seed:r(),tox:tox&&r()<.8});};
+  S.wbc.forEach(t=>{let n=S.mid[t];if(state==='toksik'&&(t==='neut'||t==='het'))n=Math.round(n*1.8);else if(state==='toksik'&&t==='lymph')n=Math.round(n*.4);else if(state==='leukemia'&&(t==='neut'||t==='het'))n=Math.round(n*.3);else if(state==='leukemia'&&t==='lymph')n=Math.round(n*1.3);place(t,n,state==='toksik'&&(t==='neut'||t==='het'));});
+  if(state==='toksik')place('band',16,true);
+  if(state==='leukemia')place('blast',40);
+  place(S.plt,state==='trombosit'?3:state==='defbesi'?70:state==='leukemia'?14:S.plt==='plt'?45:25);
   if(state==='parasit'&&S.par.k==='tryp')for(let i=0;i<30;i++)other.push({t:'tryp',x:120+r()*(W-240),y:120+r()*(H-240),r:55,rot:r()*6.28,seed:r()});
   return {W,H,rbc,other};
 }
@@ -1268,8 +1333,9 @@ function drawBlood(c,o,S){
       c.fillStyle='#4a2b6a';c.beginPath();c.ellipse(0,0,R*.4,R*.27,0,0,7);c.fill();
       if(o.par){c.strokeStyle='#c9a2c8';c.lineWidth=R*.14;c.beginPath();c.ellipse(0,0,R*.6,R*.38,0,.5,3.7);c.stroke();for(let i=0;i<4;i++)dot(Math.cos(.8+i*.7)*R*.6,Math.sin(.8+i*.7)*R*.38,R*.045,'#7a5a2a');}
     }else{
-      circ(R,col,'#c27a68',1.1);
-      if(S.rbc.pal&&!o.poly)circ(R*S.rbc.pal,'#f4cfc3');
+      if(o.sph){circ(R,'#d4705c','#9a4a3a',1.1);}
+      else{circ(R,col,'#c27a68',1.1);
+      if(o.hypo)circ(R*.68,'#f8e2da');else if(S.rbc.pal&&!o.poly)circ(R*S.rbc.pal,'#f4cfc3');}
       if(o.par){
         const k=S.par.k;
         if(k==='babesia'){[-1,1].forEach(s=>{c.save();c.rotate(s*.6);c.fillStyle='#6f86c4';c.strokeStyle='#3b4a8a';c.lineWidth=.8;c.beginPath();c.ellipse(R*.3,0,R*.32*S.par.sz,R*.2*S.par.sz,0,0,7);c.fill();c.stroke();dot(R*.4,0,R*.045,'#8d1c4a');c.restore();});}
@@ -1321,11 +1387,28 @@ function drawBlood(c,o,S){
     c.fillStyle='#5a3d8f';c.beginPath();c.ellipse(0,0,R*.55,R*.4,0,0,7);c.fill();
     for(let i=0;i<3;i++)dot(R*.7+(sr()-.5)*R*.1,(sr()-.5)*R*.5,R*.07,'#3a2060');
   }
+  else if(t==='band'){
+    circ(R,'#efdbe3','#c9a8b8',1);
+    for(let i=0;i<20;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.9;dot(Math.cos(a)*d,Math.sin(a)*d,R*.035,'#dcaac6');}
+    c.strokeStyle='#5a3d8f';c.lineWidth=R*.3;c.lineCap='round';c.beginPath();c.arc(0,0,R*.5,.7,5.6);c.stroke();
+  }
+  else if(t==='blast'){
+    circ(R,'#9fb4de','#6f85b8',1.2);
+    dot(0,0,R*.82,'#7a5aa8');
+    for(let i=0;i<26;i++){const a=sr()*6.28,d=Math.sqrt(sr())*R*.7;dot(Math.cos(a)*d,Math.sin(a)*d,R*.06,'#5a3d8f');}
+    for(let i=0;i<2;i++)dot((sr()-.5)*R*.7,(sr()-.5)*R*.7,R*.13,'#e2d6f2');
+  }
   else if(t==='tryp'){
     const P=[];for(let i=0;i<=24;i++){const s=i/24;P.push([-R+2*R*s,R*.15*Math.sin(s*9)]);}
     c.strokeStyle='#7184bd';c.lineCap='round';
     for(let i=1;i<P.length;i++){c.lineWidth=R*.12*(1+Math.sin(Math.PI*i/24));c.beginPath();c.moveTo(P[i-1][0],P[i-1][1]);c.lineTo(P[i][0],P[i][1]);c.stroke();}
     dot(0,P[12][1],R*.1,'#55287c');c.lineWidth=2;c.beginPath();c.moveTo(P[24][0],P[24][1]);c.quadraticCurveTo(R*1.2,-R*.2,R*1.4,0);c.stroke();
+  }
+  if(o.tox&&(t==='neut'||t==='het'||t==='band')){
+    c.fillStyle='rgba(80,100,190,.35)';c.beginPath();c.arc(0,0,R*.98,0,7);c.fill();
+    for(let i=0;i<5;i++){const a=sr()*6.28,d=R*(.55+sr()*.35);dot(Math.cos(a)*d,Math.sin(a)*d,R*.11,'#f2eef6');}
+    for(let i=0;i<14;i++){const a=sr()*6.28,d=R*(.3+sr()*.65);dot(Math.cos(a)*d,Math.sin(a)*d,R*.045,'#3a2a78');}
+    for(let i=0;i<2;i++){const a=sr()*6.28;dot(Math.cos(a)*R*.85,Math.sin(a)*R*.85,R*.1,'#a7c3ea');}
   }
   c.restore();
 }
@@ -1334,7 +1417,7 @@ inits.darah=function(){
   const cv=$('#bl-cv'),c=cv.getContext('2d'),info=$('#bl-info');
   let sp='anjing',state='normal',mode='belajar',field=null,cx=1200,cy=900,sel=null,quiz=null,pen='neut',checked=false;
   fillSelect($('#bl-sp'),Object.entries(BLD).map(([k,s])=>[k,s.n]));
-  const STATES=[['normal','Normal'],['anemia','Anemia regeneratif'],['parasit','Parasit darah']];
+  const STATES=[['normal','Normal'],['anemia','Anemia regeneratif'],['parasit','Parasit darah'],['imha','IMHA'],['toksik','Infeksi/toksik'],['leukemia','Leukemia limfoid'],['trombosit','Trombositopenia'],['defbesi','Defisiensi besi']];
   const MODES=[['belajar','Belajar'],['kuis','Kuis sel'],['hitung','Hitung diferensial']];
   const btns=(id,arr,cur)=>{$(id).innerHTML=arr.map(([k,t])=>`<button class="b${k===cur?' on':''}" data-k="${k}">${t}</button>`).join(' ');};
   const isW=t=>BLD[sp].wbc.includes(t);
@@ -1360,7 +1443,7 @@ inits.darah=function(){
   const clamp=()=>{cx=Math.min(field.W-100,Math.max(100,cx));cy=Math.min(field.H-100,Math.max(100,cy));};
 
   function summary(){
-    const S=BLD[sp],names=[...S.wbc,S.plt];
+    const S=BLD[sp],names=[...S.wbc,S.plt,...(state==='toksik'?['band']:[]),...(state==='leukemia'?['blast']:[])];
     info.innerHTML=`<h2>Ulas darah ${S.n}</h2><p class="muted">Pewarnaan Wright-Giemsa, perbesaran ± 1000×. Seret preparat untuk menggeser.</p>
     <h3>Kondisi</h3><p>${BST[state]}</p>
     ${state==='parasit'?`<p><b>Parasit pada ${S.n}:</b> ${S.par.txt}</p>`:''}
@@ -1379,15 +1462,18 @@ inits.darah=function(){
     if(cell.t==='rbc'){
       extra=`<h3>Pada ${S.n}</h3><p>${S.rbc.txt}</p>`;
       if(cell.par)extra+=`<h3>Parasit terlihat</h3><p>${S.par.txt}</p>`;
+      if(cell.sph)extra+=`<h3>Spherosit</h3><p>Eritrosit kecil, bulat, padat tanpa central pallor: bagian membrannya dimakan makrofag karena dilapisi antibodi. Tanda khas IMHA (pada anjing sangat khas).</p>`;
+      if(cell.hypo)extra+=`<h3>Hipokromia</h3><p>Central pallor melebar karena hemoglobin sedikit (kekurangan besi).</p>`;
       if(cell.poly)extra+=`<h3>Polikromasia</h3><p>Sel lebih besar berwarna biru keabuan: retikulosit (eritrosit muda). Tanda regenerasi sumsum tulang.</p>`;
     }else if(S.notes[cell.t])extra=`<h3>Pada ${S.n}</h3><p>${S.notes[cell.t]}</p>`;
+    if(cell.tox)extra+=`<h3>Perubahan toksik</h3><p>Sitoplasma basofilik (kebiruan), vakuola, granula toksik gelap, dan badan Döhle (bercak biru pucat di tepi). Menandakan pematangan cepat akibat infeksi/radang berat.</p>`;
     info.innerHTML=`<button class="b" id="blback">← Ringkasan</button><h2 style="margin-top:10px">${d.n}</h2><h3>Ciri</h3><p>${d.ciri}</p><h3>Fungsi</h3><p>${d.fn}</p>${extra}<h3>Makna klinis</h3><p>${d.klin}</p>`;
     $('#blback',info).onclick=()=>{sel=null;summary();render();};
   }
 
   /* kuis */
   function nextQ(){
-    const pool=field.other.filter(o=>o.t!=='tryp');
+    const pool=field.other.filter(o=>o.t!=='tryp'&&o.t!=='band'&&o.t!=='blast');
     quiz.target=pool[Math.random()*pool.length|0];quiz.done=false;quiz.last=null;cx=quiz.target.x+(Math.random()-.5)*160;cy=quiz.target.y+(Math.random()-.5)*120;clamp();qUI();render();
   }
   function qUI(){
@@ -2088,6 +2174,9 @@ const SRC={
  window.addSrc=(k,t,list)=>{SRC[k]=list;N[k]=t;render();};
  function render(){$('#srcs').innerHTML=Object.keys(SRC).map(k=>`<h4>${N[k]||k}</h4><ul>${SRC[k].map(s=>`<li>${s}</li>`).join('')}</ul>`).join('');}
  window.renderSrc=render;render();})();
+addSrc('sakit','Mata Sakit',['Kanski JJ, Bowling B. Kanski’s Clinical Ophthalmology. Elsevier.','Maggs DJ, Miller PE, Ofri R. Slatter’s Fundamentals of Veterinary Ophthalmology. Elsevier.','Gelatt KN (ed.). Veterinary Ophthalmology. Wiley-Blackwell.','Wilkinson CP et al. (2003). Proposed international clinical diabetic retinopathy and diabetic macular edema disease severity scales. Ophthalmology 110:1677–1682.','American Academy of Ophthalmology. Preferred Practice Pattern: Diabetic Retinopathy; Primary Open-Angle Glaucoma.','Materi dan ilustrasi diadaptasi ulang secara digital dari atlas retinopati diabetik dan glaukoma yang dipelajari penulis.']);
+addSrc('farma','Farmakologi',['Aiache JM, Devissaguet JPh, Guyot-Hermann AM (1993). Biofarmasetika (Farmasetika 2). Surabaya: Airlangga University Press.','Bagian Farmakologi Fakultas Kedokteran UI (1995). Farmakologi dan Terapi, edisi 4. Jakarta: Gaya Baru.','Agur AMR, Moore KL (2007). Essential Clinical Anatomy. Lippincott Williams & Wilkins.','Handbook of Pathophysiology, 3rd ed. (2008). Lippincott Williams & Wilkins.','Riviere JE, Papich MG (eds). Veterinary Pharmacology and Therapeutics (Adams’). Wiley-Blackwell.','Plumb DC. Plumb’s Veterinary Drug Handbook. Wiley-Blackwell.','Materi dari buku ajar farmasi/farmakologi penulis: Bab 2 “Perjalanan Obat Peroral dalam Tubuh” dan Bab 3 “Pelepasan dan Pelarutan Obat dari Sediaan Obat Oral”; ilustrasi digambar ulang secara digital.']);
+addSrc('imun','Imunologi',['Buku ajar imunologi penulis: Bab 19 Immunodeficiency (hlm. 265–280) dan Bab 15 Gastrointestinal diseases (hlm. 211–217); ilustrasi digambar ulang secara digital.','Tizard IR. Veterinary Immunology. Elsevier.','Day MJ, Schultz RD. Veterinary Immunology: Principles and Practice. CRC Press.','Washabau RJ, Day MJ (eds). Canine and Feline Gastroenterology. Elsevier.']);
 /* ---------- tentang ---------- */
 $('#about').innerHTML=`<h2>101daily</h2>
 <p>Atlas interaktif untuk belajar kedokteran hewan dan ilmu kesehatan: anatomi dan otot 3D, anatomi mata 3D, mikroskop virtual, histopatologi, embriologi, reproduksi, ulas darah, serta modul klinis (mata sakit, farmakologi, imunologi). Semua gambar dibuat ulang secara digital sebagai ilustrasi skematis untuk keperluan belajar.</p>
