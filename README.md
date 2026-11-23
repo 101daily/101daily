@@ -1,26 +1,18 @@
 # 101daily
 
-Atlas interaktif 101daily untuk mahasiswa kedokteran hewan. Satu file (`index.html`), tanpa build.
+Atlas interaktif untuk belajar kedokteran hewan dan ilmu kesehatan — satu berkas `index.html`, tanpa instalasi.
+Interactive atlas for veterinary and health-science study. Atlas interaktif kanggo sinau kedokteran kewan.
 
-## Isi
-- **Anatomi & Otot 3D**: sapi, kambing/domba, kuda, anjing, kucing, ayam, kura-kura, ular. Putar 360°, klik otot untuk nama, fungsi, protein, dan lokasi injeksi. Ada mode **Kuis otot**.
-- **Mata 3D**: 8 hewan, bentuk pupil dan tapetum berbeda, potongan bola mata, otot luar mata.
-- **Mikroskop Parasit**: 8 preparat (feses, apus darah, kerokan kulit), lensa 4×–100×, fokus, geser preparat.
-- **Histopatologi**: hati, usus, kulit, otot, paru (normal vs patologi).
-- **Embriologi**: zigot sampai organogenesis, lapisan germinal, tabel perkembangan ayam.
-- **Reproduksi**: betina dan jantan 9 hewan, tabel perbandingan.
-- **Ulas Darah**: apus darah 6 hewan (anjing, kucing, sapi, kuda, kambing, ayam) dengan sel-sel darah, kondisi normal/anemia/parasit darah, kuis sel, dan latihan hitung diferensial leukosit.
+**Situs / Site:** https://101daily.github.io/101daily/
 
-## Menjalankan
-Buka `index.html` di browser (perlu internet untuk memuat Three.js dari unpkg).
+## Modul
+Anatomi & Otot 3D · Mata 3D · Mikroskop Parasit (mikroskop virtual) · Histopatologi · Embriologi · Reproduksi · Ulas Darah · Mata Sakit · Farmakologi · Imunologi · Kuis
 
-## GitHub Pages
-1. Buat repo `101daily.github.io` di akun/organisasi `101daily`, unggah `index.html` dan `README.md`.
-2. Settings → Pages → Branch `main` / root → Save.
-3. Alamat: `https://101daily.github.io/`
+## Bahasa
+Indonesia, English, Basa Jawa (pilih di menu bahasa; atau `?lang=id|en|jv`).
 
-## Foto atlas sendiri
-Taruh foto yang kamu punya hak pakainya di `assets/repro/` dengan nama `sapi-betina.jpg`, `anjing-jantan.jpg`, dst (kunci: sapi, kambing, kuda, babi, anjing, kucing, ayam, kura, ular). Tampil otomatis di tab Reproduksi.
+## Sumber
+Daftar sumber & rujukan ada di bagian bawah setiap halaman. Semua gambar digambar ulang secara digital sebagai ilustrasi skematis.
 
-## Catatan
-Semua model dan gambar dibuat dengan kode (skematis), bukan foto asli. Nilai (protein, gestasi, dll) berupa perkiraan; cocokkan dengan atlas dan buku rujukan. Info injeksi hanya untuk belajar anatomi, bukan petunjuk dosis.
+## Penulis
+drh. Alfathitamara Oktalia Sasti, M.Si.
