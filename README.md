@@ -1,6 +1,6 @@
-# 101daily
+# 101daily — All Species Doctor
 
-Atlas interaktif untuk belajar kedokteran hewan dan ilmu kesehatan — satu berkas `index.html`, tanpa instalasi.
+All Species Doctor — atlas interaktif untuk belajar kedokteran semua spesies — satu berkas `index.html`, tanpa instalasi.
 Interactive atlas for veterinary and health-science study. Atlas interaktif kanggo sinau kedokteran kewan.
 
 **Situs / Site:** https://101daily.github.io/101daily/

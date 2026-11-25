@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>101daily — Atlas Interaktif Kedokteran Hewan</title>
+<title>101daily — All Species Doctor</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <style>
 :root{--bg:#0f1720;--card:#16212d;--card2:#1c2a38;--line:#2a3b4d;--tx:#e8eef5;--mut:#9fb0c3;--ac:#4cc9a6;--ac2:#f2b84b}
@@ -63,11 +63,10 @@ header{position:relative}#lang{position:absolute;top:14px;right:16px;background:
 </head>
 <body>
 <header>
-<h1 class="brand"><img src="assets/logo-burung.png" alt="" class="lb"><img src="assets/logo-teks.png" alt="101daily" class="lt"><small>Atlas interaktif kedokteran hewan</small></h1>
+<h1 class="brand"><img src="assets/logo-burung.png" alt="" class="lb"><img src="assets/logo-teks.png" alt="101daily" class="lt"><small>All Species Doctor</small></h1>
 <select id="lang" aria-label="Bahasa"><option value="id">Indonesia</option><option value="en">English</option><option value="jv">Basa Jawa</option></select>
 <nav>
-<button class="on" data-tab="anatomi">Anatomi &amp; Otot 3D</button>
-<button data-tab="manusia">Anatomi Manusia 3D</button>
+<button class="on" data-tab="anatomi">Anatomi 3D (Semua Spesies)</button>
 <button data-tab="mata">Mata 3D</button>
 <button data-tab="mikro">Mikroskop Parasit</button>
 <button data-tab="histo">Histopatologi</button>
@@ -82,19 +81,18 @@ header{position:relative}#lang{position:absolute;top:14px;right:16px;background:
 </header>
 <main>
 
-<section class="tab on" id="tab-anatomi"><div class="layout"><div>
+<section class="tab on" id="tab-anatomi"><div class="bar spbar"><label>Spesies <select id="anat-sp"></select></label><span class="muted" id="sp-note"></span></div>
+<div id="anat-animal"><div class="layout"><div>
 <div class="stage"><div class="view3d" id="anat-view"></div>
 <div class="bar">
-<label>Hewan <select id="anat-sp"></select></label>
 <label>Kulit/cangkang <input type="range" id="anat-skin" min="0" max="100" value="30"></label>
 <label><input type="checkbox" id="anat-auto"> Putar otomatis</label>
 <button class="b" id="anat-reset">Reset kamera</button>
 <button class="b" id="anat-quiz">Kuis otot</button>
 </div></div>
 <p class="muted">Seret untuk memutar 360°, scroll/cubit untuk zoom, klik otot untuk melihat fungsi, protein, dan lokasi injeksi.</p>
-</div><aside class="panel" id="anat-info"></aside></div></section>
-
-<section class="tab" id="tab-manusia"><div class="layout"><div>
+</div><aside class="panel" id="anat-info"></aside></div></div>
+<div id="anat-human" style="display:none"><div class="layout"><div>
 <div class="stage"><div class="view3d" id="hum-view"></div>
 <div class="bar">
 <label>Jenis kelamin <select id="hum-sex"><option value="m">Pria</option><option value="f">Wanita</option></select></label>
@@ -113,7 +111,9 @@ header{position:relative}#lang{position:absolute;top:14px;right:16px;background:
 <button class="b" id="hum-quiz">Kuis nama</button>
 </div></div>
 <p class="muted">Seret untuk memutar 360°, scroll/cubit untuk zoom, klik struktur untuk melihat nama, fungsi, dan nama Latin. Dari rangka sampai ruas ujung jari, organ dalam, arteri, vena, dan saraf.</p>
-</div><aside class="panel" id="hum-info"></aside></div></section>
+</div><aside class="panel" id="hum-info"></aside></div></div></section>
+
+
 
 <section class="tab" id="tab-mata"><div class="layout"><div>
 <div class="stage"><div class="view3d" id="eye-view"></div>
@@ -487,7 +487,7 @@ inits.anatomi=function(){
   const v=createViewer($('#anat-view'));
   const skin=new THREE.MeshStandardMaterial({color:0xb98a5e,transparent:true,opacity:.3,roughness:.8,side:THREE.DoubleSide,depthWrite:false});
   let cur='sapi',model=null,kit=null,sel=null,quiz=null;
-  fillSelect($('#anat-sp'),Object.entries(SP).map(([k,s])=>[k,s.n]));
+  fillSelect($('#anat-sp'),[['manusia','Manusia'],...Object.entries(SP).map(([k,s])=>[k,s.n])]);$('#anat-sp').value='sapi';
   const info=$('#anat-info');
   function highlight(){Object.entries(kit.mats).forEach(([id,m])=>{m.emissive.setHex(id===sel?0xffa800:0x000000);m.emissiveIntensity=id===sel?.9:0;});}
   function intro(){
@@ -533,7 +533,8 @@ inits.anatomi=function(){
   enablePicking(v,()=>Object.values(kit.byId).flat(),hs=>{if(!hs)return;const id=hs[0].object.userData.muscle;if(quiz)answer(id);else select(id);},
     (hs,e)=>{if(hs){if(!quiz)tip(MUS[SP[cur].kind][hs[0].object.userData.muscle].idn,e);v.renderer.domElement.style.cursor='pointer';}else{tip('',e);v.renderer.domElement.style.cursor='grab';}});
   $('#anat-quiz').onclick=()=>{if(quiz){stopQuiz();}else{quiz={ok:0,n:0,target:null,done:false};$('#anat-quiz').classList.add('on');nextQ();}};
-  $('#anat-sp').onchange=e=>load(e.target.value);
+  $('#anat-sp').onchange=e=>{const k=e.target.value,hum=k==='manusia';$('#anat-animal').style.display=hum?'none':'';$('#anat-human').style.display=hum?'':'none';
+    if(hum){if(!done.manusia){done.manusia=1;inits.manusia();}window.dispatchEvent(new Event('resize'));}else load(k);};
   $('#anat-skin').oninput=e=>{skin.opacity=e.target.value/100;};
   $('#anat-auto').onchange=e=>{v.controls.autoRotate=e.target.checked;v.controls.autoRotateSpeed=2;};
   $('#anat-reset').onclick=()=>v.reset();
@@ -2775,7 +2776,7 @@ addSrc('farma','Farmakologi',['Aiache JM, Devissaguet JPh, Guyot-Hermann AM (199
 addSrc('imun','Imunologi',['Buku ajar imunologi penulis: Bab 19 Immunodeficiency (hlm. 265–280) dan Bab 15 Gastrointestinal diseases (hlm. 211–217); ilustrasi digambar ulang secara digital.','Tizard IR. Veterinary Immunology. Elsevier.','Day MJ, Schultz RD. Veterinary Immunology: Principles and Practice. CRC Press.','Washabau RJ, Day MJ (eds). Canine and Feline Gastroenterology. Elsevier.']);
 /* ---------- tentang ---------- */
 $('#about').innerHTML=`<h2>101daily</h2>
-<p>Atlas interaktif untuk belajar kedokteran hewan dan ilmu kesehatan: anatomi dan otot 3D, anatomi mata 3D, mikroskop virtual, histopatologi, embriologi, reproduksi, ulas darah, serta modul klinis (mata sakit, farmakologi, imunologi). Semua gambar dibuat ulang secara digital sebagai ilustrasi skematis untuk keperluan belajar.</p>
+<p><b>All Species Doctor</b> — atlas interaktif untuk belajar kedokteran dan ilmu kesehatan semua spesies, dari manusia sampai hewan: anatomi dan otot 3D, anatomi mata 3D, mikroskop virtual, histopatologi, embriologi, reproduksi, ulas darah, serta modul klinis (mata sakit, farmakologi, imunologi). Semua gambar dibuat ulang secara digital sebagai ilustrasi skematis untuk keperluan belajar.</p>
 <p>Modul anatomi manusia 3D: rangka sampai ruas ujung jari, otot, organ dalam, pembuluh darah, dan saraf, lengkap dengan nama dan nama Latin.</p>
 <h2>Penulis</h2>
 <p><b>drh. Alfathitamara Oktalia Sasti, M.Si.</b></p>
